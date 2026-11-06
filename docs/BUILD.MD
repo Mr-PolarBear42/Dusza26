@@ -10,4 +10,4 @@ Futtasd a következő parancsot:
 ```
 uvx pyinstaller --onefile src/main.py
 ```
-Ez létre fog hozni egy `dest/main.exe` futtatható fájlt a projekt könyvtárában.
+Ez létre fog hozni egy `dist/main.exe` futtatható fájlt a projekt könyvtárában.
