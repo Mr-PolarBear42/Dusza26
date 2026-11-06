@@ -1,4 +1,4 @@
-def ReadInput(file_path: str):
+def read_input(file_path: str):
     with open(file_path, "r") as fs:
         first_line = fs.readline()
         [h, w] = map(int, first_line.split())
