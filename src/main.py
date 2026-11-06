@@ -14,10 +14,13 @@ def main():
         add_help=False
     )
 
-    parser.add_argument("input", help="Elérési út a bemeneti állományhoz")
-    parser.add_argument("output", help="Elérési út a kimeneti állományhoz")
-    parser.add_argument("-q", "--quiet", action="store_true", help="Ha meg van adva, akkor a program nem fog semmilyen felhasználói beavatkozást kérni (csendes mód)")
-    parser.add_argument('-h', '--help', action='help', default=argparse.SUPPRESS, help='Megjeleníti ezt az üzenetet és kilép')
+    parser.add_argument("-h", "--help", action="help", default=argparse.SUPPRESS, help="Megjeleníti ezt az üzenetet és kilép")
+    parser.add_argument("input", help="Elérési út a bemeneti állományhoz vagy a bemeneti állományok könyvtárához")
+    parser.add_argument("output", help="Elérési út a kimeneti állományhoz vagy kimeneti állományok könyvtárához")
+
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument("-q", "--quiet", action="store_true", help="Ha meg van adva, akkor a program nem fog semmilyen felhasználói beavatkozást kérni (csendes mód)")
+    group.add_argument("-a", "--all", action="store_true", help="Ugyan az mint a -q opció, csak a bemeneti könyvtárban található összes fájlra le fogja futtatni a programot. A naplófájlokat a kimeneti könyvtárba fogja írni.")
 
     args = parser.parse_args()
 
