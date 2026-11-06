@@ -1,34 +1,29 @@
-import sys
-
-if __name__ != "__main__":
-    sys.exit()
+import argparse
 
 from read_input import read_input
 
-quiet = False
-input_file_name = None
-output_file_name = None
 
-def handle_arguments():
-    global quiet, input_file_name, output_file_name
-    if len(sys.argv) <= 1:
-        return False
-    if sys.argv[1] == "-q":
-        if len(sys.argv) != 4:
-            return False
-        quiet = True
-        input_file_name = sys.argv[2]
-        output_file_name = sys.argv[3]
-        return True
-    elif len(sys.argv) == 3:
-        input_file_name = sys.argv[1]
-        output_file_name = sys.argv[2]
-        return True
-    else: 
-        return False
+def main():
+    parser = argparse.ArgumentParser(
+        prog="2026-os Dusza Árpád Országos Programozói Emlékverseny-re készült beadandó projekt",
+        description="""
+            Beolvassa a bemeneti állományt, majd a grafikus felületet megnyitja.
+            A program futása során a naplófájl tartalmát a kimeneti állományba fogja írni.
+            A program futtatható felhasználói beavatkozás nélkül is a csendes opcióval (-q)""",
+        add_help=False
+    )
 
-if not handle_arguments():
-    sys.exit()
+    parser.add_argument("input", help="Elérési út a bemeneti állományhoz")
+    parser.add_argument("output", help="Elérési út a kimeneti állományhoz")
+    parser.add_argument("-q", "--quiet", action="store_true", help="Ha meg van adva, akkor a program nem fog semmilyen felhasználói beavatkozást kérni (csendes mód)")
+    parser.add_argument('-h', '--help', action='help', default=argparse.SUPPRESS, help='Megjeleníti ezt az üzenetet és kilép')
 
-map_data, code = read_input(input_file_name)
-print(map_data, code)
+    args = parser.parse_args()
+
+    print(args)
+
+    map_data, code = read_input(args.input)
+    print(map_data, code)
+
+if __name__ == "__main__":
+    main()
