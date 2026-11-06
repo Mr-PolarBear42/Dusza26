@@ -1,30 +1,14 @@
-class MineScriptError(Exception):
-    code = "UNKNOWN_ERROR"
+class RuntimeErrorCode(Exception):
+    """A MineScript runtime failure carrying the required log error code."""
+
+    def __init__(self, code: str):
+        self.code = code
+        super().__init__(code)
 
 
-class TypeMismatchError(MineScriptError):
-    code = "E_TYPE_MISMATCH"
+class InstructionLimitExceeded(Exception):
+    pass
 
 
-class UninitializedVariableError(MineScriptError):
-    code = "E_UNINITIALIZED"
-
-
-class NonBoolConditionError(MineScriptError):
-    code = "E_NON_BOOL_CONDITION"
-
-
-class BadOperandError(MineScriptError):
-    code = "E_BAD_OPERAND"
-
-
-class BedrockHitError(MineScriptError):
-    code = "E_BEDROCK_HIT"
-
-
-class NoGoldError(MineScriptError):
-    code = "E_NO_GOLD"
-
-
-class BadArgError(MineScriptError):
-    code = "E_BAD_ARG"
+class ProgramTerminated(Exception):
+    pass
