@@ -1,6 +1,9 @@
 import sys
 
-from PyQt6.QtWidgets import QApplication, QMainWindow
+import PyQt6.QtWidgets as qtw
+from PyQt6.QtWidgets import QApplication, QHBoxLayout, QMainWindow, QWidget
+
+from block_program import BlockProgram
 
 
 class Ide:
@@ -11,11 +14,17 @@ class Ide:
         self.win = QMainWindow()
         self.win.setWindowTitle("Arany Bánya")
 
-        ### put stuff here
-    
-        
+        blockProgramWidget = BlockProgram()
+        mapWidget = qtw.QLabel("Vizualizáció")
 
-        ###
+        centralWidget = QWidget()
+        centralWidgetLayout = QHBoxLayout(centralWidget)
+        centralWidgetLayout.addWidget(blockProgramWidget)
+        centralWidgetLayout.addWidget(mapWidget)
+        centralWidgetLayout.setStretch(0, 2)
+        centralWidgetLayout.setStretch(1, 3)
+
+        self.win.setCentralWidget(centralWidget)
 
         self.win.showMaximized()
         sys.exit(app.exec())
