@@ -1,6 +1,7 @@
 import argparse
 
 from read_input import read_input
+from ide import IDE
 
 
 def main():
@@ -24,6 +25,8 @@ def main():
 
     map_data, code = read_input(args.input)
     print(map_data, code)
+
+    IDE()
 
 if __name__ == "__main__":
     main()
