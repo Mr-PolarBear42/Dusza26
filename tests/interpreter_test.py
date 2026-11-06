@@ -1,0 +1,110 @@
+import sys
+from pathlib import Path
+from tempfile import TemporaryDirectory
+
+import pytest
+
+
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "src"))
+
+from interpreter import DummyRobot, Interpreter  # noqa: E402
+
+
+@pytest.fixture
+def run_program():
+    def run(map_rows: list[str], source: str, **kwargs: object):
+        robot = DummyRobot.from_map(map_rows)
+        log = Interpreter(robot, **kwargs).run(source)
+        return robot, log.lines
+
+    return run
+
+
+def test_empty_program_finishes_with_eor(run_program):
+    _, lines = run_program([">"], "")
+
+    assert lines == ("EOR",)
+
+
+def test_is_there_and_print_are_logged(run_program):
+    _, lines = run_program(
+        [">@."],
+        "set gold to isThere 2\nprint gold",
+    )
+
+    assert lines == (
+        "1 isThere 2 true",
+        "2 print true",
+        "EOR",
+    )
+
+
+def test_if_else_executes_only_the_selected_branch(run_program):
+    _, lines = run_program(
+        [">.."],
+        "if false\n  print 1\nelse\n  print 2",
+    )
+
+    assert lines == ("1", "3", "4 print 2", "EOR")
+
+
+def test_robot_moves_turns_and_mines(run_program):
+    robot, lines = run_program(
+        [">@."],
+        "step forward 1\nturn by 1\nturn by 3\nmine here",
+    )
+
+    assert (robot.row, robot.column, robot.direction) == (0, 1, ">")
+    assert robot.mined == 1
+    assert lines == (
+        "1 step forward 1",
+        "2 turn by 1",
+        "3 turn by 3",
+        "4 mine here",
+        "EOR",
+    )
+
+
+def test_runtime_error_stops_program_and_is_logged(run_program):
+    _, lines = run_program(
+        [">.."],
+        "step forward 5\nprint 1",
+    )
+
+    assert lines == ("1 step forward 5 E_BEDROCK_HIT", "EOR")
+
+
+def test_type_mismatch_is_reported(run_program):
+    _, lines = run_program(
+        [">"],
+        "set value to 1\nset value to false\nprint 1",
+    )
+
+    assert lines == ("2 E_TYPE_MISMATCH", "EOR")
+
+
+def test_instruction_limit_does_not_write_eor(run_program):
+    _, lines = run_program(
+        [">"],
+        "while true\n  turn by 0",
+        max_instructions=3,
+    )
+
+    assert lines == (
+        "1",
+        "2 turn by 0",
+        "1",
+        "INSTRUCTION_COUNT_LIMIT_EXCEEDED",
+    )
+    assert "EOR" not in lines
+
+
+def test_log_can_be_written_to_a_file():
+    robot = DummyRobot.from_map([">"])
+    log = Interpreter(robot).run("print false")
+
+    with TemporaryDirectory() as directory:
+        output = Path(directory) / "output.txt"
+        log.write(output)
+        assert output.read_text(encoding="utf-8") == "1 print false\nEOR\n"
