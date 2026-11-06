@@ -1,21 +1,13 @@
-# Dusza Verseny 2026(Arany bánya)
-## Building the executable
-**pyinstaller**: You need the pyinstaller python module downloaded to build the executable.
-This can must usually be done with one of the following commands:
+# Dusza Verseny 2026 (Arany bánya)
+
+## A projekt függőségei
+A uv csomag és projekt kezelőt le kell telepítened ahhoz, hogy futtatni vagy buildelni tudd a projektet.
+Kövesd az utasításokat [innen](https://docs.astral.sh/uv/getting-started/installation/).
+
+## A futtatható fájl buildelése
+
+Futtasd a következő parancsot:
 ```
-pip install pyinstaller
+uvx pyinstaller --onefile src/main.py
 ```
-```
-py -3 -m pip install pyinstaller
-```
-#
-then you need to run pyinstaller to pack the main.py file into a bundle, this aswell can most usually be done via one of the following commands:
-```
-pyinstaller --onefile main.py
-```
-```
-py -3 -m pyinstaller --onefile main.py
-```
-```
-py -m PyInstaller --onefile main.py
-```
+Ez létre fog hozni egy `dest/main.exe` futtatható fájlt a projekt könyvtárában.
