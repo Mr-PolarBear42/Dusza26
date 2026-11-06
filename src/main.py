@@ -1,7 +1,8 @@
 import argparse
 
-from read_input import read_input
 from ide import IDE
+
+from read_input import read_input
 
 
 def main():
