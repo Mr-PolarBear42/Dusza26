@@ -4,6 +4,7 @@ if __name__ != "__main__":
     sys.exit()
 
 from read_input import read_input
+from ide import IDE
 
 quiet = False
 input_file_name = None
@@ -32,3 +33,5 @@ if not handle_arguments():
 
 map_data, code = read_input(input_file_name)
 print(map_data, code)
+
+IDE()
