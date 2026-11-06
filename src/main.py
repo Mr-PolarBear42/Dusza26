@@ -1,7 +1,10 @@
+from sys import exit
+
 if __name__ != "__main__":
-    quit()
+    exit()
 
 import sys
+
 from read_input import ReadInput
 
 quiet = False
@@ -27,7 +30,7 @@ def handle_arguments():
         return False
 
 if not handle_arguments():
-    quit()
+    exit()
 
 map_data, code = ReadInput(input_file_name)
 print(map_data, code)
