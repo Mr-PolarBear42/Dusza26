@@ -1,0 +1,7 @@
+[project]
+name = "dusza26"
+version = "0.1.0"
+description = "2026-os Dusza Árpád Országos Programozói Emlékverseny-re készült beadandó projekt"
+readme = "README.md"
+requires-python = ">=3.14"
+dependencies = []
