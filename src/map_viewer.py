@@ -36,6 +36,8 @@ class MapViewer(QtWidgets.QGraphicsView):
         self.clicked = False
         self.first_click: callable[None, None] = lambda: None
 
+        self._scene_item_matrix: list[list[QtWidgets.QGraphicsPixmapItem]] | None = None
+
         self._scene: QtWidgets.QGraphicsScene = QtWidgets.QGraphicsScene(self)
         self.setScene(self._scene)
 
@@ -47,9 +49,12 @@ class MapViewer(QtWidgets.QGraphicsView):
         self._map_width = w
         self._map_height = h
 
-    def render_map(self):
+        self._scene_item_matrix = [[None for _ in range(self._map_width)] for _ in range(self._map_width)]
+        self._render_map()
+
+
+    def _render_map(self):
         self._scene.clear()
-        print("doing it")
         for y in range(self._map_height):
             start_x = -y * self.tile_size / 2
             start_y = y * self.tile_size / 4
@@ -64,7 +69,8 @@ class MapViewer(QtWidgets.QGraphicsView):
                         start_y + x * self.tile_size / 4,
                     )
                     self._scene.addItem(item)
-                    
+
+
         for y in range(self._map_height):
             start_x = -y * self.tile_size / 2
             start_y = y * self.tile_size / 4
@@ -78,7 +84,12 @@ class MapViewer(QtWidgets.QGraphicsView):
                             start_x + x * self.tile_size / 2,
                             start_y + x * self.tile_size / 4 - self.tile_size / 2,
                         )
+                        self._scene_item_matrix[y][x] = item
                         self._scene.addItem(item)
+
+    def remove_item(self, x: int, y:int):
+        self._scene.removeItem(self._scene_item_matrix[y][x])
+        self._scene_item_matrix[y][x] = None
 
     # override cursor changes while dragging
     def mousePressEvent(self, event):
