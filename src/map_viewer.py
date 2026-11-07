@@ -6,6 +6,13 @@ from utils.enums import Direction
 
 from sprite_manager import SpriteManager
 
+dir_to_arrow = {
+    Direction.NORTH: "^",
+    Direction.EAST: ">",
+    Direction.SOUTH: "v",
+    Direction.WEST: "<"
+}
+
 class MapViewer(QtWidgets.QGraphicsView):
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -23,18 +30,14 @@ class MapViewer(QtWidgets.QGraphicsView):
 
         self._robot_x = 0
         self._robot_y = 0
-        # 0 -- north
-        # 1 -- east
-        # 2 -- south
-        # 3 -- west
-        self._robot_face = 0
+        self._robot_face: Direction = Direction.NORTH
+        self._robot_item: QtWidgets.QGraphicsPixmapItem | None = None
 
         self._map_data: list[list[str, str]] = None
         self._map_width = 0
         self._map_height = 0
 
         self.clicked = False
-        self.first_click: callable[None, None] = lambda: None
 
         self._scene_item_matrix: list[list[QtWidgets.QGraphicsPixmapItem]] | None = None
 
@@ -50,8 +53,18 @@ class MapViewer(QtWidgets.QGraphicsView):
         self._map_height = h
 
         self._scene_item_matrix = [[None for _ in range(self._map_width)] for _ in range(self._map_width)]
+        
         self._render_map()
 
+        ##render robot
+        robot_sprite = self.sprite_manager.get_sprite(dir_to_arrow[self._robot_face])
+        self._robot_item = QtWidgets.QGraphicsPixmapItem(robot_sprite)
+        self._robot_item.setScale(self.tile_size / robot_sprite.width())
+        self._robot_item.setPos(
+            (self._robot_x - self._robot_y) * self.tile_size / 2,
+            (self._robot_x + self._robot_y) * self.tile_size / 4 - self.tile_size / 2
+        )
+        self._scene.addItem(self._robot_item)
 
     def _render_map(self):
         self._scene.clear()
@@ -75,7 +88,7 @@ class MapViewer(QtWidgets.QGraphicsView):
             start_x = -y * self.tile_size / 2
             start_y = y * self.tile_size / 4
             for x in range(self._map_width):
-                if self._map_data[y][x] != ".":
+                if self._map_data[y][x] != "." and self._map_data[y][x] not in [">", "<", "^", "v"]:
                     sprite = self.sprite_manager.get_sprite(self._map_data[y][x])
                     if sprite:
                         item = QtWidgets.QGraphicsPixmapItem(sprite)
@@ -84,6 +97,7 @@ class MapViewer(QtWidgets.QGraphicsView):
                             start_x + x * self.tile_size / 2,
                             start_y + x * self.tile_size / 4 - self.tile_size / 2,
                         )
+                        item.setZValue(y)
                         self._scene_item_matrix[y][x] = item
                         self._scene.addItem(item)
 
@@ -91,10 +105,18 @@ class MapViewer(QtWidgets.QGraphicsView):
         self._scene.removeItem(self._scene_item_matrix[y][x])
         self._scene_item_matrix[y][x] = None
 
+    def move_robot(self, x: int, y: int):
+        point_x = (x - y) * self.tile_size / 2
+        point_y = (x + y) * self.tile_size / 4 - self.tile_size / 2
+        self._robot_item.setZValue(y)
+        self._robot_item.setPos(point_x, point_y)
+
+    def change_robot_direction(self, dir: Direction):
+        self._robot_item.setPixmap(self.sprite_manager.get_sprite(dir_to_arrow[dir]))
+
     # override cursor changes while dragging
     def mousePressEvent(self, event):
         if not self.clicked:
-            self.first_click()
             self.clicked = True
         if event.button() == QtCore.Qt.MouseButton.LeftButton:
             self.setCursor(QtCore.Qt.CursorShape.ClosedHandCursor)

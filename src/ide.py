@@ -16,18 +16,18 @@ class Ide:
         self.win.setWindowTitle("Arany Bánya")
 
         blockly_panel = BlocklyPanel(map, code)
-        map_widget = MapViewer()
+        mapWidget = MapViewer()
 
         central_widget = qtw.QWidget()
         main_layout = qtw.QHBoxLayout(central_widget)
         splitter = qtw.QSplitter(qtc.Qt.Orientation.Horizontal, central_widget)
         splitter.addWidget(blockly_panel)
-        splitter.addWidget(map_widget)
+        splitter.addWidget(mapWidget)
         splitter.setSizes((1, 1))
         main_layout.addWidget(splitter)
         self.win.setCentralWidget(central_widget)
 
-        map_widget.load_map(map, w, h, 0, 0, Direction)
+        mapWidget.load_map(map, w, h, 0, 0, Direction.WEST)
 
         self.win.showMaximized()
         sys.exit(app.exec())
