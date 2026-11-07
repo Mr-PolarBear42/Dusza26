@@ -7,7 +7,10 @@ from interpreter import DummyRobot, Interpreter
 class BlocklyPanel(QtWidgets.QWidget):
     codeChanged = QtCore.pyqtSignal(str)
 
-    def __init__(self, map_data: list[list[str]], source: str = "", parent=None) -> None:
+    def update_ide(self):
+        self.ide_api({})
+
+    def __init__(self, map_data: list[list[str]], source: str = "", api: callable[object] = lambda: None, parent=None) -> None:
         super().__init__(parent)
         self.map_data = map_data
         self.code = source
@@ -16,6 +19,7 @@ class BlocklyPanel(QtWidgets.QWidget):
         self.debug_log_indices = []
         self.debug_index = -1
         self.debugging = False
+        self.ide_api = api
 
         palette = QtWidgets.QApplication.palette()
         dark_mode = palette.window().color().lightness() < 128
