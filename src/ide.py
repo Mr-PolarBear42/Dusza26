@@ -1,28 +1,29 @@
 import sys
 
-import PyQt6.QtCore as qtc
-import PyQt6.QtWidgets as qtw
+from PyQt6 import QtCore, QtGui, QtWidgets
 
 from blockly_panel import BlocklyPanel
 from map_viewer import MapViewer
 from utils.enums import Direction
+from utils.resource_path import resource_path
 
 
 class Ide:
     def __init__(self, map: list[list[str]], w: int, h: int, code: str):
-        app = qtw.QApplication(sys.argv)
+        app = QtWidgets.QApplication(sys.argv)
 
-        self.win = qtw.QMainWindow()
-        self.win.setWindowTitle("Arany Bánya")
+        self.win = QtWidgets.QMainWindow()
+        self.win.setWindowTitle("Arany Bánya MineScript IDE")
+        self.win.setWindowIcon(QtGui.QIcon(resource_path("assets/icon.png")))
 
         blockly_panel = BlocklyPanel(map, code)
         mapWidget = MapViewer()
         blockly_panel.robotStateChanged.connect(mapWidget.update_robot_state)
         blockly_panel.mapResetEvent.connect(mapWidget.reset_map)
 
-        central_widget = qtw.QWidget()
-        main_layout = qtw.QHBoxLayout(central_widget)
-        splitter = qtw.QSplitter(qtc.Qt.Orientation.Horizontal, central_widget)
+        central_widget = QtWidgets.QWidget()
+        main_layout = QtWidgets.QHBoxLayout(central_widget)
+        splitter = QtWidgets.QSplitter(QtCore.Qt.Orientation.Horizontal, central_widget)
         splitter.addWidget(blockly_panel)
         splitter.addWidget(mapWidget)
         splitter.setSizes([400, 400])
