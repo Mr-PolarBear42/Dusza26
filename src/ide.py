@@ -25,8 +25,7 @@ class Ide:
 
         mainLayoutSplitter.addWidget(blockProgramWidget)
         mainLayoutSplitter.addWidget(mapWidget)
-        mainLayoutSplitter.setStretchFactor(0, 2)
-        mainLayoutSplitter.setStretchFactor(1, 2)
+        mainLayoutSplitter.setSizes((1, 1))
 
         mainLayout.addWidget(mainLayoutSplitter)
 
