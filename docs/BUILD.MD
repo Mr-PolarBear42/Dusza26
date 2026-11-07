@@ -6,8 +6,11 @@ Kövesd az utasításokat [innen](https://docs.astral.sh/uv/getting-started/inst
 
 ## A futtatható fájl buildelése
 
-Futtasd a következő parancsot:
+Futtasd a következő parancsokat egymás után:
 ```
-uvx pyinstaller --onefile src/main.py
+uv add pyinstaller
+```
+```
+uv run pyinstaller --onefile --add-data "src/assets:assets" src/main.py
 ```
 Ez létre fog hozni egy `dist/main.exe` futtatható fájlt a projekt könyvtárában.
