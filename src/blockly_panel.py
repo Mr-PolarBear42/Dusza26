@@ -2,6 +2,8 @@ from PyQt6 import QtCore, QtGui, QtWidgets
 
 from blockly_editor import BlocklyEditor
 from interpreter import Interpreter, Robot
+from interpreter.state_snapshot import StateSnapshot
+from utils.enums import Direction
 
 
 class BlocklyPanel(QtWidgets.QWidget):
@@ -10,6 +12,12 @@ class BlocklyPanel(QtWidgets.QWidget):
 
     def update_ide(self):
         self.ide_api({})
+
+    def start_without_debugging(self):
+        self._execute(debug=False)
+
+    def start_debugging(self):
+        self._execute(debug=True)
 
     def __init__(
         self,
@@ -38,9 +46,9 @@ class BlocklyPanel(QtWidgets.QWidget):
         self.blockly_editor.codeChanged.connect(self._code_changed)
 
         execute_button = QtWidgets.QPushButton("Execute")
-        execute_button.clicked.connect(lambda: self._execute(debug=False))
+        execute_button.clicked.connect(self.start_without_debugging)
         debug_button = QtWidgets.QPushButton("Debug")
-        debug_button.clicked.connect(lambda: self._execute(debug=True))
+        debug_button.clicked.connect(self.start_debugging)
         self._style_buttons(execute_button, debug_button)
 
         previous_button = QtWidgets.QPushButton("Previous step")
@@ -72,9 +80,23 @@ class BlocklyPanel(QtWidgets.QWidget):
         self.log_view.setReadOnly(True)
         self.log_view.setPlaceholderText("Execution logs will appear here.")
 
-        self.debug_view = QtWidgets.QPlainTextEdit()
-        self.debug_view.setReadOnly(True)
-        self.debug_view.setPlaceholderText("Debugger state will appear here.")
+        self.debug_panel = QtWidgets.QSplitter(QtCore.Qt.Orientation.Vertical)
+        self.current_line_text = QtWidgets.QPlainTextEdit()
+        self.current_line_text.setReadOnly(True)
+        self.current_line_text.setPlaceholderText("Debugger state will appear here.")
+
+        self.variable_table = QtWidgets.QTableWidget()
+        self.variable_table.setColumnCount(3)
+        self.variable_table.setHorizontalHeaderLabels(("Name", "Value", "Type"))
+        self.variable_table.setCornerWidget(QtWidgets.QLabel("Hello!"))
+
+        labeled_variable_table = QtWidgets.QWidget()
+        labeled_variable_table_layout = QtWidgets.QVBoxLayout(labeled_variable_table)
+        labeled_variable_table_layout.addWidget(QtWidgets.QLabel("Variables:"))
+        labeled_variable_table_layout.addWidget(self.variable_table)
+
+        self.debug_panel.addWidget(self.current_line_text)
+        self.debug_panel.addWidget(labeled_variable_table)
 
         self.output_tabs = QtWidgets.QTabWidget()
         self.output_tabs.addTab(self.source_view, "Generated source")
@@ -110,11 +132,11 @@ class BlocklyPanel(QtWidgets.QWidget):
         )
         for button, (background, hover, pressed) in zip(buttons, selected_styles):
             button.setStyleSheet(
-                f"QPushButton {{ background: {background}; color: white; "
-                "font-weight: bold; border: none; border-radius: 6px; "
-                "padding: 8px 16px; }"
-                f"QPushButton:hover {{ background: {hover}; }}"
-                f"QPushButton:pressed {{ background: {pressed}; }}"
+                f"""QPushButton {{ background: {background}; color: white;
+                    font-weight: bold; border: none; border-radius: 6px;
+                    padding: 8px 16px; }}
+                    QPushButton:hover {{ background: {hover}; }}
+                    QPushButton:pressed {{ background: {pressed}; }}"""
             )
 
     def _code_changed(self, code: str) -> None:
@@ -130,7 +152,8 @@ class BlocklyPanel(QtWidgets.QWidget):
             log = interpreter.run(self.code)
         except ValueError as error:
             self.log_view.setPlainText(f"Could not execute program: {error}")
-            self.debug_view.clear()
+            self.current_line_text.clear()
+            self.variable_table.setRowCount(0)
             self.debug_snapshots = []
             self.debug_index = -1
             self.debugging = False
@@ -139,7 +162,6 @@ class BlocklyPanel(QtWidgets.QWidget):
             self._clear_highlight()
             return
 
-        self.robotStateChanged.emit(initial_state)
         self.debug_snapshots = interpreter.entry_snapshots
         self.debug_log_lines = log.lines
         self.debug_log_indices = interpreter.entry_log_indices
@@ -153,7 +175,8 @@ class BlocklyPanel(QtWidgets.QWidget):
         self.debug_controls.setVisible(debug and bool(self.debug_snapshots))
         if debug:
             self._show_debug_panel()
-            self.debug_view.clear()
+            self.current_line_text.clear()
+            self.variable_table.setRowCount(0)
             self.log_view.clear()
             self._clear_highlight()
         else:
@@ -185,17 +208,21 @@ class BlocklyPanel(QtWidgets.QWidget):
 
     def _render_debug_state(self) -> None:
         snapshot = self.debug_snapshots[self.debug_index]
-        variables = (
-            "\n".join(
-                f"  {name} = {value}"
-                for name, value in sorted(snapshot.variables.items())
+        self.variable_table.setRowCount(len(snapshot.variables.items()))
+        for i, (name, value) in enumerate(sorted(snapshot.variables.items())):
+            self.variable_table.setItem(i, 0, QtWidgets.QTableWidgetItem(name))
+            self.variable_table.setItem(i, 1, QtWidgets.QTableWidgetItem(str(value)))
+            self.variable_table.setItem(
+                i,
+                2,
+                QtWidgets.QTableWidgetItem(
+                    "Bool" if isinstance(value, bool) else "Number"
+                ),
             )
-            or "  (none)"
-        )
-        self.debug_view.setPlainText(
+
+        self.current_line_text.setPlainText(
             f"Step {self.debug_index + 1} of {len(self.debug_snapshots)}\n"
-            f"Source line: {snapshot.line_number}\n\n"
-            f"Variables\n{variables}\n\n"
+            f"Source line: {snapshot.line_number}\n"
             f"Robot\n"
             f"  Position: row {snapshot.robot_position[0]}, "
             f"column {snapshot.robot_position[1]}\n"
@@ -214,12 +241,12 @@ class BlocklyPanel(QtWidgets.QWidget):
         self.log_view.setPlainText("\n".join(self.debug_log_lines[:end]))
 
     def _show_debug_panel(self) -> None:
-        if self.output_tabs.indexOf(self.debug_view) == -1:
-            self.output_tabs.addTab(self.debug_view, "Debug")
-        self.output_tabs.setCurrentWidget(self.debug_view)
+        if self.output_tabs.indexOf(self.debug_panel) == -1:
+            self.output_tabs.addTab(self.debug_panel, "Debug")
+        self.output_tabs.setCurrentWidget(self.debug_panel)
 
     def _hide_debug_panel(self) -> None:
-        index = self.output_tabs.indexOf(self.debug_view)
+        index = self.output_tabs.indexOf(self.debug_panel)
         if index != -1:
             self.output_tabs.removeTab(index)
 
@@ -240,7 +267,7 @@ class BlocklyPanel(QtWidgets.QWidget):
         self._execution_state_index += 1
 
     @staticmethod
-    def _state_from_snapshot(snapshot) -> dict:
+    def _state_from_snapshot(snapshot: StateSnapshot) -> dict:
         return {
             "row": snapshot.robot_position[0],
             "column": snapshot.robot_position[1],
