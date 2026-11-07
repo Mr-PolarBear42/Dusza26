@@ -39,7 +39,7 @@ def test_expressions(run_program, expression: str, expected: str):
     _, lines = run_program([">"], f"set result to {expression}\nprint result")
 
     assert lines == (f"2 print {expected}", "EOR")
-    
+
 @pytest.mark.parametrize(
     ("wrong_expression",),
     [
@@ -71,9 +71,9 @@ def test_special_equalities(run_program):
         "8 print true",
         "EOR",
     )
-    
+
     _, lines_false = run_program([">"], "set result to 1 = 2\nprint result\nset result to 1 <> 1\nprint result\nset result to true = false\nprint result\nset result to false <> false\nprint result")
-    
+
     assert lines_false == (
         "2 print false",
         "4 print false",
@@ -161,7 +161,7 @@ def test_instruction_limit_does_not_write_eor(run_program):
         "INSTRUCTION_COUNT_LIMIT_EXCEEDED",
     )
     assert "EOR" not in lines
-    
+
 def test_each_run_starts_with_fresh_state():
     robot = DummyRobot.from_map([">"])
     interpreter = Interpreter(robot)
@@ -184,7 +184,7 @@ def test_log_can_be_written_to_a_file():
 @pytest.mark.parametrize(
     ("expression","error_code"),
     [
-        
+
         ("step forward true","E_BAD_ARG"),
         ("turn by false","E_BAD_ARG"),
         ("mine here", "E_NO_GOLD"),
@@ -194,4 +194,55 @@ def test_log_can_be_written_to_a_file():
 def test_api_argument_failures(run_program,expression: str,error_code: str):
     _, lines = run_program([">"], expression)
     assert lines == (f"1 {expression} {error_code}", "EOR")
-    
+
+def test_state_snapshots():
+    robot = DummyRobot.from_map([">"])
+
+    interpreter = Interpreter(robot)
+    interpreter.run("set value to 1\nprint value")
+    assert len(interpreter.state_snapshots) == 2
+    assert interpreter.state_snapshots[0].variables == {"value": 1}
+    assert interpreter.state_snapshots[0].line_number == 1
+    assert interpreter.state_snapshots[0].robot_position == (0, 0)
+    assert interpreter.state_snapshots[0].robot_direction == ">"
+
+    assert interpreter.state_snapshots[1].variables == {"value": 1}
+    assert interpreter.state_snapshots[1].line_number == 2
+    assert interpreter.state_snapshots[1].robot_position == (0, 0)
+    assert interpreter.state_snapshots[1].robot_direction == ">"
+
+def test_state_snapshots_are_recorded_once_for_api_commands():
+    robot = DummyRobot.from_map([">."])
+
+    interpreter = Interpreter(robot)
+    interpreter.run("step forward 1\nturn by 1\nprint false")
+
+    assert len(interpreter.state_snapshots) == 3
+    assert [snapshot.line_number for snapshot in interpreter.state_snapshots] == [1, 2, 3]
+    assert interpreter.state_snapshots[0].robot_position == (0, 1)
+    assert interpreter.state_snapshots[1].robot_direction == "^"
+
+def test_state_snapshots_are_cleared_between_runs():
+    robot = DummyRobot.from_map([">"])
+
+    interpreter = Interpreter(robot)
+    interpreter.run("set value to 1\nprint value")
+    interpreter.run("set other to 2\nprint other\nset value to 3\nturn by 1")
+
+    assert len(interpreter.state_snapshots) == 4
+    assert interpreter.state_snapshots[0].variables == {"other": 2}
+    assert interpreter.state_snapshots[1].variables == {"other": 2}
+    assert interpreter.state_snapshots[2].variables == {"other": 2, "value": 3}
+    assert interpreter.state_snapshots[3].variables == {"other": 2, "value": 3}
+    assert interpreter.state_snapshots[0].line_number == 1
+    assert interpreter.state_snapshots[1].line_number == 2
+    assert interpreter.state_snapshots[2].line_number == 3
+    assert interpreter.state_snapshots[3].line_number == 4
+    assert interpreter.state_snapshots[0].robot_position == (0, 0)
+    assert interpreter.state_snapshots[1].robot_position == (0, 0)
+    assert interpreter.state_snapshots[2].robot_position == (0, 0)
+    assert interpreter.state_snapshots[3].robot_position == (0, 0)
+    assert interpreter.state_snapshots[0].robot_direction == ">"
+    assert interpreter.state_snapshots[1].robot_direction == ">"
+    assert interpreter.state_snapshots[2].robot_direction == ">"
+    assert interpreter.state_snapshots[3].robot_direction == "^"

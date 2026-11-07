@@ -1,16 +1,10 @@
 from dataclasses import dataclass
-from typing import Any, Protocol
+from typing import Any
 
 from .errors import InstructionLimitExceeded, ProgramTerminated, RuntimeErrorCode
 from .logging import ExecutionLog
-
-
-class Robot(Protocol):
-    def is_there(self, kind: int) -> bool: ...
-    def step_forward(self, distance: int) -> None: ...
-    def turn_by(self, quarter_turns: int) -> None: ...
-    def mine_here(self) -> None: ...
-
+from .state_snapshot import StateSnapshot
+from .dummy_robot import DummyRobot
 
 KEYWORDS = {
     "and", "by", "else", "false", "forward", "here", "if", "isThere",
@@ -28,7 +22,7 @@ class _Command:
 
 
 class Interpreter:
-    def __init__(self, robot: Robot, max_instructions: int = 1000) -> None:
+    def __init__(self, robot: DummyRobot, max_instructions: int = 1000) -> None:
         self.robot = robot
         self.max_instructions = max_instructions
         self.variables: dict[str, Any] = {}
@@ -36,11 +30,13 @@ class Interpreter:
         self._instruction_count = 0
         self._current_line = 0
         self._api_error: tuple[str, Any] | None = None
+        self.state_snapshots: list[StateSnapshot] = []
 
     def reset(self) -> None:
         """Resets the Interpreter to its initial state, clearing variables and logs."""
         self.variables = {}
         self.log = ExecutionLog()
+        self.state_snapshots = []
         self._instruction_count = 0
         self._current_line = 0
         self._api_error = None
@@ -103,6 +99,7 @@ class Interpreter:
                 details = () if value is None else (value,)
                 self.log.record(command.line, api, *details, error=error.code)
             raise ProgramTerminated from error
+        self.state_snapshots.append(StateSnapshot(self.variables.copy(), command.line, (self.robot.row, self.robot.column), self.robot.direction))
 
     def _execute_inner(self, command: _Command) -> None:
         """Executes the inner logic of a command, determining the type of command and performing the appropriate action.
@@ -309,6 +306,7 @@ class Interpreter:
                 raise RuntimeErrorCode("E_BAD_OPERAND")
             return left == right if operator == "=" else left != right
         raise RuntimeErrorCode("E_BAD_ARG")
+    
 
 
 def _parse(source: str) -> list[_Command]:
