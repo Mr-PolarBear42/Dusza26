@@ -1,5 +1,4 @@
 import argparse
-from sys import exit
 import os
 
 from ide import Ide
@@ -59,19 +58,21 @@ def main():
             input_file = os.path.join(args.input, file)
             output_file = os.path.join(args.output, file)
             generate(input_file, output_file)
-            
+
     else:
         map_data, w, h, code = read_input(args.input)
         Ide(map_data, w, h, code)
 
+
 def generate(input_file: str, output_file: str):
-    map_data, w, h, code = read_input(input_file)
+    map_data, _w, _h, code = read_input(input_file)
     robot = Robot.from_map(map_data)
     out = Interpreter(robot).run(code)
     with open(output_file, "w") as fs:
         for line in out._lines:
             fs.write(line)
             fs.write("\n")
+
 
 if __name__ == "__main__":
     main()

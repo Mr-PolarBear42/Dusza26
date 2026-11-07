@@ -1,7 +1,6 @@
-from pathlib import Path
-from utils.resource_path import resource_path
-
 from PyQt6 import QtCore, QtWebChannel, QtWebEngineWidgets
+
+from utils.resource_path import resource_path
 
 
 class BlocklyBridge(QtCore.QObject):

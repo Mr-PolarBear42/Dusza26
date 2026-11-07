@@ -3,7 +3,7 @@ from PyQt6 import QtCore, QtGui, QtWidgets
 from blockly_editor import BlocklyEditor
 from interpreter import Interpreter, Robot
 from interpreter.state_snapshot import StateSnapshot
-from utils.enums import Direction
+from utils.arrow_to_direction import arrow_to_direction
 
 
 class BlocklyPanel(QtWidgets.QWidget):
@@ -219,7 +219,7 @@ class BlocklyPanel(QtWidgets.QWidget):
             f"Robot\n"
             f"  Position: row {snapshot.robot_position[0]}, "
             f"column {snapshot.robot_position[1]}\n"
-            f"  Direction: {snapshot.robot_direction}"
+            f"  Direction: {snapshot.robot_direction} ({arrow_to_direction(snapshot.robot_direction)})"
         )
 
     def _render_debug_log(self) -> None:
