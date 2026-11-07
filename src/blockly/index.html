@@ -120,7 +120,7 @@
     function linesFrom(first, indent) {
       const lines = [];
       for (let block = first; block; block = block.getNextBlock()) {
-        const pad = " ".repeat(indent);
+        const pad = "  ".repeat(indent);
         const addLine = text => {
           generatedLine += 1;
           block.sourceLine = generatedLine;
