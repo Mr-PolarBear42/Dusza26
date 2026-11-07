@@ -3,7 +3,6 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Minescript Blockly editor</title>
   <script src="blockly.min.js"></script>
   <script src="qrc:///qtwebchannel/qwebchannel.js"></script>
   <style>
@@ -13,7 +12,6 @@
   </style>
 </head>
 <body>
-  <div id="status">Minescript Blockly</div>
   <div id="blocklyDiv"></div>
   <xml id="toolbox" style="display:none">
     <category name="Commands" colour="#4C97FF">
@@ -120,7 +118,7 @@
     function linesFrom(first, indent) {
       const lines = [];
       for (let block = first; block; block = block.getNextBlock()) {
-        const pad = " ".repeat(indent);
+        const pad = "  ".repeat(indent);
         const addLine = text => {
           generatedLine += 1;
           block.sourceLine = generatedLine;
@@ -192,11 +190,6 @@
         y += block.getHeightWidth().height + 8;
       });
     }
-    function publish() {
-      const code = generatedCode();
-      document.getElementById("status").textContent = "Generated " + code.split("\n").filter(Boolean).length + " line(s)";
-      if (bridge) bridge.update_code(code);
-    }
     function importSource(source) {
       workspace.clear();
       const lines = source.split(/\r?\n/)
@@ -205,7 +198,7 @@
       const roots = parseStatements(lines, 0, lines.length, lines[0]?.text.search(/\S/) ?? 0).blocks;
       connectStatementList(roots);
       workspace.render();
-      publish();
+    
     }
     function newBlock(type) {
       const block = workspace.newBlock(type);
@@ -349,7 +342,6 @@
     setInterval(() => {
       if (flyout.isVisible()) spaceFlyoutBlocks();
     }, 100);
-    workspace.addChangeListener(event => { if (!event.isUiEvent) publish(); });
     new QWebChannel(qt.webChannelTransport, channel => {
       bridge = channel.objects.bridge;
       bridge.ready.connect(source => { pendingSource = source; importSource(source); });

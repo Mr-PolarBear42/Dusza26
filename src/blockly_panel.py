@@ -9,6 +9,7 @@ from utils.arrow_to_direction import arrow_to_direction
 class BlocklyPanel(QtWidgets.QWidget):
     codeChanged = QtCore.pyqtSignal(str)
     robotStateChanged = QtCore.pyqtSignal(object)
+    mapResetEvent = QtCore.pyqtSignal()
 
     def __init__(
         self,
@@ -25,7 +26,7 @@ class BlocklyPanel(QtWidgets.QWidget):
         self.debug_index = -1
         self.debugging = False
         self._execution_timer = QtCore.QTimer(self)
-        self._execution_timer.setInterval(250)
+        self._execution_timer.setInterval(100)
         self._execution_timer.timeout.connect(self._emit_next_execution_state)
         self._execution_states = []
         self._execution_state_index = 0
@@ -136,8 +137,10 @@ class BlocklyPanel(QtWidgets.QWidget):
 
     def _execute(self, debug: bool) -> None:
         self._execution_timer.stop()
+        self._emit_map_reset()
         try:
             robot = Robot.from_map(["".join(row) for row in self.map_data])
+            self._emit_robot_state(robot.row, robot.column, robot.direction, robot.mined_positions)
             interpreter = Interpreter(robot)
             log = interpreter.run(self.code)
         except ValueError as error:
@@ -255,6 +258,9 @@ class BlocklyPanel(QtWidgets.QWidget):
             return
         self.robotStateChanged.emit(self._execution_states[self._execution_state_index])
         self._execution_state_index += 1
+
+    def _emit_map_reset(self) -> None:
+        self.mapResetEvent.emit()
 
     @staticmethod
     def _state_from_snapshot(snapshot: StateSnapshot) -> dict:

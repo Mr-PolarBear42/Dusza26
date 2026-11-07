@@ -2,6 +2,7 @@ from PyQt6 import QtCore, QtGui, QtWidgets
 
 from sprite_manager import SpriteManager
 from utils.enums import Direction
+from copy import deepcopy
 
 dir_to_arrow = {
     Direction.NORTH: "^",
@@ -53,7 +54,9 @@ class MapViewer(QtWidgets.QGraphicsView):
         robot_y: int,
         robot_face: Direction,
     ):
-        self._map_data = map
+        self._initial_map = map
+        
+        self._map_data = deepcopy(map)
         self._robot_x = robot_x
         self._robot_y = robot_y
         self._robot_face = robot_face
@@ -77,23 +80,15 @@ class MapViewer(QtWidgets.QGraphicsView):
         self._robot_item.setZValue(self._robot_y)
         self._scene.addItem(self._robot_item)
 
-    def _render_map(self):
-        self._scene.clear()
-        for y in range(self._map_height):
-            start_x = -y * self.tile_size / 2
-            start_y = y * self.tile_size / 4
-            for x in range(self._map_width):
-                sprite = self.sprite_manager.get_sprite(".")
+    def reset_map(self):
+        self._map_data = deepcopy(self._initial_map)
+        for xyz in self._scene_item_matrix:
+            for item in xyz:
+                if item is not None:
+                    self._scene.removeItem(item)
+        self._add_items()
 
-                if sprite:
-                    item = QtWidgets.QGraphicsPixmapItem(sprite)
-                    item.setScale(self.tile_size / sprite.width())
-                    item.setPos(
-                        start_x + x * self.tile_size / 2,
-                        start_y + x * self.tile_size / 4,
-                    )
-                    self._scene.addItem(item)
-
+    def _add_items(self):
         for y in range(self._map_height):
             start_x = -y * self.tile_size / 2
             start_y = y * self.tile_size / 4
@@ -115,6 +110,25 @@ class MapViewer(QtWidgets.QGraphicsView):
                         item.setZValue(y)
                         self._scene_item_matrix[y][x] = item
                         self._scene.addItem(item)
+
+    def _render_map(self):
+        self._scene.clear()
+        for y in range(self._map_height):
+            start_x = -y * self.tile_size / 2
+            start_y = y * self.tile_size / 4
+            for x in range(self._map_width):
+                sprite = self.sprite_manager.get_sprite(".")
+
+                if sprite:
+                    item = QtWidgets.QGraphicsPixmapItem(sprite)
+                    item.setScale(self.tile_size / sprite.width())
+                    item.setPos(
+                        start_x + x * self.tile_size / 2,
+                        start_y + x * self.tile_size / 4,
+                    )
+                    self._scene.addItem(item)
+                    
+        self._add_items()
 
     def remove_item(self, x: int, y: int):
         self._scene.removeItem(self._scene_item_matrix[y][x])
