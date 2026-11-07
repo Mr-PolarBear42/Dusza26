@@ -8,14 +8,10 @@ class BlocklyPanel(QtWidgets.QWidget):
     codeChanged = QtCore.pyqtSignal(str)
     robotStateChanged = QtCore.pyqtSignal(object)
 
-    def update_ide(self):
-        self.ide_api({})
-
     def __init__(
         self,
         map_data: list[list[str]],
         source: str = "",
-        api: callable[object] = lambda: None,
         parent=None,
     ) -> None:
         super().__init__(parent)
