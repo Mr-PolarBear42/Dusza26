@@ -26,10 +26,9 @@ def main():
 
     print(args)
 
-    map_data, code = read_input(args.input)
-    print(map_data, code)
+    map_data, w, h, code = read_input(args.input)
 
-    Ide()
+    Ide(map_data, w, h, code)
 
 if __name__ == "__main__":
     main()

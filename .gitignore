@@ -221,3 +221,6 @@ __marimo__/
 
 # Zalán Linuxos bénaságai
 .directory
+
+# Patrik hülyeségei
+src/assets/sprites/alignment.png

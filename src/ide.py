@@ -1,13 +1,14 @@
 import sys
 
-import PyQt6.QtWidgets as qtw
 from PyQt6.QtWidgets import QApplication, QHBoxLayout, QMainWindow, QWidget
 
 from block_program import BlockProgram
+from map_viewer import MapViewer
+from utils.enums import Direction
 
 
 class Ide:
-    def __init__(self):
+    def __init__(self, map: list[list[str]], w: int, h: int, code: str):
 
         app = QApplication(sys.argv)
 
@@ -15,7 +16,7 @@ class Ide:
         self.win.setWindowTitle("Arany Bánya")
 
         blockProgramWidget = BlockProgram()
-        mapWidget = qtw.QLabel("Vizualizáció")
+        mapWidget = MapViewer()
 
         centralWidget = QWidget()
         centralWidgetLayout = QHBoxLayout(centralWidget)
@@ -23,6 +24,9 @@ class Ide:
         centralWidgetLayout.addWidget(mapWidget)
         centralWidgetLayout.setStretch(0, 2)
         centralWidgetLayout.setStretch(1, 3)
+
+        mapWidget.load_map(map, w, h, 0, 0, Direction.NORTH)
+        mapWidget.render_map()
 
         self.win.setCentralWidget(centralWidget)
 

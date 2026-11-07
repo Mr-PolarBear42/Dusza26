@@ -15,6 +15,6 @@ def read_input(file_path: str):
         while line:
             code += line
             line = fs.readline()
-        return map_data, code
+        return map_data, w, h, code
 
 
