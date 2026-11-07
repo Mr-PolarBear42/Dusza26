@@ -1,7 +1,8 @@
 import sys
 
+import PyQt6.QtCore as qtc
 import PyQt6.QtWidgets as qtw
-from PyQt6.QtWidgets import QApplication, QHBoxLayout, QMainWindow, QWidget
+from PyQt6.QtWidgets import QApplication, QMainWindow, QWidget
 
 from block_program import BlockProgram
 
@@ -18,11 +19,15 @@ class Ide:
         mapWidget = qtw.QLabel("Vizualizáció")
 
         centralWidget = QWidget()
-        centralWidgetLayout = QHBoxLayout(centralWidget)
-        centralWidgetLayout.addWidget(blockProgramWidget)
-        centralWidgetLayout.addWidget(mapWidget)
-        centralWidgetLayout.setStretch(0, 2)
-        centralWidgetLayout.setStretch(1, 3)
+        mainLayout = qtw.QHBoxLayout(centralWidget)
+        mainLayoutSplitter = qtw.QSplitter(qtc.Qt.Orientation.Horizontal, centralWidget)
+
+        mainLayoutSplitter.addWidget(blockProgramWidget)
+        mainLayoutSplitter.addWidget(mapWidget)
+        mainLayoutSplitter.setStretchFactor(0, 2)
+        mainLayoutSplitter.setStretchFactor(1, 2)
+
+        mainLayout.addWidget(mainLayoutSplitter)
 
         self.win.setCentralWidget(centralWidget)
 

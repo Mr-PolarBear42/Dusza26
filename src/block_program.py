@@ -1,5 +1,9 @@
+import PyQt6.QtCore as qtc
+import PyQt6.QtGui as qtg
 import PyQt6.QtWidgets as qtw
-from block import Block
+
+from blocks import Block, CommandBlock
+from block_delegate import BlockDelegate
 
 
 class BlockProgram(qtw.QTreeWidget):
@@ -8,10 +12,14 @@ class BlockProgram(qtw.QTreeWidget):
 
         self.setColumnCount(1)
         self.setHeaderHidden(True)
+        self.setItemDelegate(BlockDelegate(self))
+        self.setIndentation(25)
+        self.setUniformRowHeights(True)
+        self.setDragDropMode(self.DragDropMode.InternalMove)
 
         # Helper function to create a block
-        def createBlock(text, parent=None):
-            block = Block()
+        def createBlock(cls, text, parent=None):
+            block = cls()
             block.setText(0, text)
 
             if parent:
@@ -19,42 +27,47 @@ class BlockProgram(qtw.QTreeWidget):
 
             return block
 
-        block1 = createBlock("Set count to 0")
+        block1 = createBlock(CommandBlock, "Set count to 0")
 
-        block2 = createBlock("Set fal to isThere 1")
+        block2 = createBlock(CommandBlock, "Set fal to isThere 1")
 
-        block3 = createBlock("Set megy to not fal")
+        block3 = createBlock(CommandBlock, "Set megy to not fal")
 
         # While megy
-        block4 = createBlock("while megy")
+        block4 = createBlock(Block, "while megy")
 
         # Inside while
-        createBlock("Set arany to isThere 2", block4)
+        createBlock(CommandBlock, "Set arany to isThere 2", block4)
 
-        block6 = createBlock("if arany", block4)
+        block6 = createBlock(Block, "if arany", block4)
 
         # Inside if arany
-        createBlock("step forward 1", block6)
+        createBlock(CommandBlock, "step forward 1", block6)
 
-        createBlock("mine here", block6)
+        createBlock(CommandBlock, "mine here", block6)
 
-        createBlock("Set count to count + 1", block6)
+        createBlock(CommandBlock, "Set count to count + 1", block6)
 
         # Else branch
-        block10 = createBlock("else", block4)
+        block10 = createBlock(Block, "else", block4)
 
-        createBlock("step forward 1", block10)
+        createBlock(CommandBlock, "step forward 1", block10)
 
         # More blocks inside while
-        createBlock("Set fal to isThere 1", block4)
+        createBlock(CommandBlock, "Set fal to isThere 1", block4)
 
-        createBlock("Set megy to not fal", block4)
+        createBlock(CommandBlock, "Set megy to not fal", block4)
 
         # Final block
-        block14 = createBlock("print count")
+        block14 = createBlock(CommandBlock, "print count")
 
         # Add top-level blocks
         self.addTopLevelItems([block1, block2, block3, block4, block14])
 
         # Expand all blocks
         self.expandAll()
+
+    def dropEvent(self, event: qtg.QDropEvent):
+        print(event)
+        super().dropEvent(event)
+        # self.expandAll()
