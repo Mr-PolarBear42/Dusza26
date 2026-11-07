@@ -4,6 +4,13 @@
 A uv csomag és projekt kezelőt le kell telepítened ahhoz, hogy futtatni vagy buildelni tudd a projektet.
 Kövesd az utasításokat [innen](https://docs.astral.sh/uv/getting-started/installation/).
 
+## A forráskód közvetlen futtatása
+
+A forráskódot közvetlenül is lehet futtatni, ehhez a következő parancsot kell beírni:
+```
+uv run py src/main.py <input> <output>
+```
+
 ## A futtatható fájl buildelése
 
 Futtasd a következő parancsokat egymás után:
