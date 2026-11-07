@@ -74,6 +74,7 @@ class MapViewer(QtWidgets.QGraphicsView):
             (self._robot_x - self._robot_y) * self.tile_size / 2,
             (self._robot_x + self._robot_y) * self.tile_size / 4 - self.tile_size / 2,
         )
+        self._robot_item.setZValue(self._robot_y)
         self._scene.addItem(self._robot_item)
 
     def _render_map(self):

@@ -139,7 +139,6 @@ class BlocklyPanel(QtWidgets.QWidget):
             self._clear_highlight()
             return
 
-        self.robotStateChanged.emit(initial_state)
         self.debug_snapshots = interpreter.entry_snapshots
         self.debug_log_lines = log.lines
         self.debug_log_indices = interpreter.entry_log_indices
