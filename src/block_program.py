@@ -2,7 +2,7 @@ import PyQt6.QtCore as qtc
 import PyQt6.QtGui as qtg
 import PyQt6.QtWidgets as qtw
 
-from blocks import Block, CommandBlock
+from blocks import Block, CommandBlock, ControlBlock
 from block_delegate import BlockDelegate
 
 
@@ -34,12 +34,12 @@ class BlockProgram(qtw.QTreeWidget):
         block3 = createBlock(CommandBlock, "Set megy to not fal")
 
         # While megy
-        block4 = createBlock(Block, "while megy")
+        block4 = createBlock(ControlBlock, "while megy")
 
         # Inside while
         createBlock(CommandBlock, "Set arany to isThere 2", block4)
 
-        block6 = createBlock(Block, "if arany", block4)
+        block6 = createBlock(ControlBlock, "if arany", block4)
 
         # Inside if arany
         createBlock(CommandBlock, "step forward 1", block6)
@@ -49,7 +49,7 @@ class BlockProgram(qtw.QTreeWidget):
         createBlock(CommandBlock, "Set count to count + 1", block6)
 
         # Else branch
-        block10 = createBlock(Block, "else", block4)
+        block10 = createBlock(ControlBlock, "else", block4)
 
         createBlock(CommandBlock, "step forward 1", block10)
 
@@ -59,7 +59,7 @@ class BlockProgram(qtw.QTreeWidget):
         createBlock(CommandBlock, "Set megy to not fal", block4)
 
         # Final block
-        block14 = createBlock(CommandBlock, "print count")
+        block14 = createBlock(Block, "print count")
 
         # Add top-level blocks
         self.addTopLevelItems([block1, block2, block3, block4, block14])
