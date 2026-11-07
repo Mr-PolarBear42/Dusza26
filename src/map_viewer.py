@@ -38,7 +38,6 @@ class MapViewer(QtWidgets.QGraphicsView):
         self._map_height = 0
 
         self.clicked = False
-        self.first_click: callable[None, None] = lambda: None
 
         self._scene_item_matrix: list[list[QtWidgets.QGraphicsPixmapItem]] | None = None
 
@@ -118,7 +117,6 @@ class MapViewer(QtWidgets.QGraphicsView):
     # override cursor changes while dragging
     def mousePressEvent(self, event):
         if not self.clicked:
-            self.first_click()
             self.clicked = True
         if event.button() == QtCore.Qt.MouseButton.LeftButton:
             self.setCursor(QtCore.Qt.CursorShape.ClosedHandCursor)
