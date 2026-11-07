@@ -125,17 +125,7 @@ class BlocklyPanel(QtWidgets.QWidget):
     def _execute(self, debug: bool) -> None:
         self._execution_timer.stop()
         try:
-<<<<<<< HEAD
-            robot = DummyRobot.from_map(["".join(row) for row in self.map_data])
-            initial_state = {
-                "row": robot.row,
-                "column": robot.column,
-                "facing": robot.direction,
-                "mined_at": [],
-            }
-=======
             robot = Robot.from_map(["".join(row) for row in self.map_data])
->>>>>>> 567d290ce510732ddb1e3f3059929c7c147dd3de
             interpreter = Interpreter(robot)
             log = interpreter.run(self.code)
         except ValueError as error:

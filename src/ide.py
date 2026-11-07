@@ -24,7 +24,7 @@ class Ide:
         splitter = qtw.QSplitter(qtc.Qt.Orientation.Horizontal, central_widget)
         splitter.addWidget(blockly_panel)
         splitter.addWidget(mapWidget)
-        splitter.setSizes((1, 1))
+        splitter.setSizes([400, 400])
         main_layout.addWidget(splitter)
         self.win.setCentralWidget(central_widget)
 
