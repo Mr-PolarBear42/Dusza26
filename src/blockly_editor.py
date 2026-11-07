@@ -1,4 +1,5 @@
 from pathlib import Path
+from utils.resource_path import resource_path
 
 from PyQt6 import QtCore, QtWebChannel, QtWebEngineWidgets
 
@@ -29,9 +30,8 @@ class BlocklyEditor(QtWebEngineWidgets.QWebEngineView):
         self.setMinimumWidth(520)
         self._dark_mode = dark_mode
 
-        page = Path(__file__).with_name("blockly").joinpath("index.html")
         self._source = source
-        self.load(QtCore.QUrl.fromLocalFile(str(page)))
+        self.load(QtCore.QUrl.fromLocalFile(resource_path("blockly/index.html")))
 
     def _channel(self) -> QtWebChannel.QWebChannel:
         channel = QtWebChannel.QWebChannel(self.page())
