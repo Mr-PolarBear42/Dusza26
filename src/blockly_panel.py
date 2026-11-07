@@ -10,20 +10,10 @@ class BlocklyPanel(QtWidgets.QWidget):
     codeChanged = QtCore.pyqtSignal(str)
     robotStateChanged = QtCore.pyqtSignal(object)
 
-    def update_ide(self):
-        self.ide_api({})
-
-    def start_without_debugging(self):
-        self._execute(debug=False)
-
-    def start_debugging(self):
-        self._execute(debug=True)
-
     def __init__(
         self,
         map_data: list[list[str]],
         source: str = "",
-        api: callable[object] = lambda: None,
         parent=None,
     ) -> None:
         super().__init__(parent)
@@ -46,9 +36,9 @@ class BlocklyPanel(QtWidgets.QWidget):
         self.blockly_editor.codeChanged.connect(self._code_changed)
 
         execute_button = QtWidgets.QPushButton("Execute")
-        execute_button.clicked.connect(self.start_without_debugging)
+        execute_button.clicked.connect(lambda: self._execute(debug=False))
         debug_button = QtWidgets.QPushButton("Debug")
-        debug_button.clicked.connect(self.start_debugging)
+        debug_button.clicked.connect(lambda: self._execute(debug=True))
         self._style_buttons(execute_button, debug_button)
 
         previous_button = QtWidgets.QPushButton("Previous step")

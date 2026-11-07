@@ -11,6 +11,6 @@ Futtasd a következő parancsokat egymás után:
 uv add pyinstaller
 ```
 ```
-uv run pyinstaller --onefile --add-data "src/assets:assets" src/main.py
+uv run pyinstaller --onefile --add-data "src/assets:assets" --add-data "src/blockly:blockly" src/main.py
 ```
 Ez létre fog hozni egy `dist/main.exe` futtatható fájlt a projekt könyvtárában.
