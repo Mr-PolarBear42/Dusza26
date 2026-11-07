@@ -11,10 +11,10 @@ def arrow_to_direction(arrow: str) -> str:
         ValueError: If the provided arrow symbol is invalid.
     """
     arrow_mapping = {
-        "^": "NORTH",
-        "v": "SOUTH",
-        "<": "WEST",
-        ">": "EAST",
+        "^": "North",
+        "v": "South",
+        "<": "West",
+        ">": "East",
     }
 
     if arrow not in arrow_mapping:
