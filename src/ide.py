@@ -17,6 +17,7 @@ class Ide:
 
         blockly_panel = BlocklyPanel(map, code)
         mapWidget = MapViewer()
+        blockly_panel.robotStateChanged.connect(mapWidget.update_robot_state)
 
         central_widget = qtw.QWidget()
         main_layout = qtw.QHBoxLayout(central_widget)
@@ -27,7 +28,16 @@ class Ide:
         main_layout.addWidget(splitter)
         self.win.setCentralWidget(central_widget)
 
-        mapWidget.load_map(map, w, h, 0, 0, Direction.WEST)
+        robot_position = next(
+            (
+                (column, row, Direction("^>v<".index(value)))
+                for row, values in enumerate(map)
+                for column, value in enumerate(values)
+                if value in "^>v<"
+            ),
+            (0, 0, Direction.WEST),
+        )
+        mapWidget.load_map(map, w, h, *robot_position)
 
         self.win.showMaximized()
         sys.exit(app.exec())

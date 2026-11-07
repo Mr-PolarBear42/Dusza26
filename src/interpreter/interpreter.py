@@ -99,6 +99,7 @@ class Interpreter:
                 command.line,
                 (self.robot.row, self.robot.column),
                 self.robot.direction,
+                self.robot.mined_positions,
             )
         )
         self.entry_log_indices.append(len(self.log.lines))
@@ -112,7 +113,15 @@ class Interpreter:
                 details = () if value is None else (value,)
                 self.log.record(command.line, api, *details, error=error.code)
             raise ProgramTerminated from error
-        self.state_snapshots.append(StateSnapshot(self.variables.copy(), command.line, (self.robot.row, self.robot.column), self.robot.direction))
+        self.state_snapshots.append(
+            StateSnapshot(
+                self.variables.copy(),
+                command.line,
+                (self.robot.row, self.robot.column),
+                self.robot.direction,
+                self.robot.mined_positions,
+            )
+        )
 
     def _execute_inner(self, command: _Command) -> None:
         """Executes the inner logic of a command, determining the type of command and performing the appropriate action.

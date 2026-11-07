@@ -45,14 +45,14 @@ class MapViewer(QtWidgets.QGraphicsView):
         self.setScene(self._scene)
 
     def load_map(self, map: list[list[str]], w: int, h: int, robot_x: int, robot_y: int, robot_face: Direction):
-        self._map_data = map
+        self._map_data = [row[:] for row in map]
         self._robot_x = robot_x
         self._robot_y = robot_y
         self._robot_face = robot_face
         self._map_width = w
         self._map_height = h
 
-        self._scene_item_matrix = [[None for _ in range(self._map_width)] for _ in range(self._map_width)]
+        self._scene_item_matrix = [[None for _ in range(self._map_width)] for _ in range(self._map_height)]
         
         self._render_map()
 
@@ -113,6 +113,33 @@ class MapViewer(QtWidgets.QGraphicsView):
 
     def change_robot_direction(self, dir: Direction):
         self._robot_item.setPixmap(self.sprite_manager.get_sprite(dir_to_arrow[dir]))
+
+    @QtCore.pyqtSlot(object)
+    def update_robot_state(self, state: object) -> None:
+        if not isinstance(state, dict):
+            return
+        row = state.get("row")
+        column = state.get("column")
+        facing = state.get("facing")
+        mined_at = state.get("mined_at", ())
+        if not isinstance(row, int) or not isinstance(column, int):
+            return
+        directions = {"^": Direction.NORTH, ">": Direction.EAST, "v": Direction.SOUTH, "<": Direction.WEST}
+        direction = directions.get(facing)
+        if direction is None:
+            return
+        self._robot_x = column
+        self._robot_y = row
+        self._robot_face = direction
+        self.move_robot(column, row)
+        self.change_robot_direction(direction)
+        for mined_row, mined_column in mined_at:
+            if (
+                0 <= mined_row < self._map_height
+                and 0 <= mined_column < self._map_width
+                and self._scene_item_matrix[mined_row][mined_column] is not None
+            ):
+                self.remove_item(mined_column, mined_row)
 
     # override cursor changes while dragging
     def mousePressEvent(self, event):

@@ -13,6 +13,7 @@ class DummyRobot:  # !!! DO NOT USE THIS CLASS IN YOUR SOLUTION. IT IS ONLY FOR 
     column: int
     direction: str
     mined: int = 0
+    mined_positions: set[tuple[int, int]] = field(default_factory=set)
     discovered: set[tuple[int, int]] = field(default_factory=set)
 
     DIRECTIONS = {"^": (-1, 0), ">": (0, 1), "v": (1, 0), "<": (0, -1)}
@@ -64,6 +65,7 @@ class DummyRobot:  # !!! DO NOT USE THIS CLASS IN YOUR SOLUTION. IT IS ONLY FOR 
             raise RuntimeErrorCode("E_NO_GOLD")
         self.grid[self.row][self.column] = "."
         self.mined += 1
+        self.mined_positions.add((self.row, self.column))
 
     def _front(self) -> tuple[int, int, str]:
         delta_row, delta_column = self.DIRECTIONS[self.direction]
