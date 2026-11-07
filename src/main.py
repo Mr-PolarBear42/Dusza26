@@ -1,6 +1,10 @@
 import argparse
+from sys import exit
+import os
 
 from ide import Ide
+from interpreter.interpreter import Interpreter
+from interpreter.robot import Robot
 from read_input import read_input
 
 
@@ -46,10 +50,28 @@ def main():
 
     args = parser.parse_args()
 
-    map_data, w, h, code = read_input(args.input)
+    if args.quiet:
+        generate(args.input, args.output)
+    elif args.all:
+        files = os.listdir(args.input)
+        os.mkdir(args.output)
+        for file in files:
+            input_file = os.path.join(args.input, file)
+            output_file = os.path.join(args.output, file)
+            generate(input_file, output_file)
+            
+    else:
+        map_data, w, h, code = read_input(args.input)
+        Ide(map_data, w, h, code)
 
-    Ide(map_data, w, h, code)
-
+def generate(input_file: str, output_file: str):
+    map_data, w, h, code = read_input(input_file)
+    robot = Robot.from_map(map_data)
+    out = Interpreter(robot).run(code)
+    with open(output_file, "w") as fs:
+        for line in out._lines:
+            fs.write(line)
+            fs.write("\n")
 
 if __name__ == "__main__":
     main()
