@@ -1,7 +1,7 @@
 from PyQt6 import QtCore, QtGui, QtWidgets
 
 from blockly_editor import BlocklyEditor
-from interpreter import DummyRobot, Interpreter
+from interpreter import Interpreter, Robot
 
 
 class BlocklyPanel(QtWidgets.QWidget):
@@ -10,7 +10,13 @@ class BlocklyPanel(QtWidgets.QWidget):
     def update_ide(self):
         self.ide_api({})
 
-    def __init__(self, map_data: list[list[str]], source: str = "", api: callable[object] = lambda: None, parent=None) -> None:
+    def __init__(
+        self,
+        map_data: list[list[str]],
+        source: str = "",
+        api: callable[object] = lambda: None,
+        parent=None,
+    ) -> None:
         super().__init__(parent)
         self.map_data = map_data
         self.code = source
@@ -113,7 +119,7 @@ class BlocklyPanel(QtWidgets.QWidget):
 
     def _execute(self, debug: bool) -> None:
         try:
-            robot = DummyRobot.from_map(["".join(row) for row in self.map_data])
+            robot = Robot.from_map(["".join(row) for row in self.map_data])
             interpreter = Interpreter(robot)
             log = interpreter.run(self.code)
         except ValueError as error:
@@ -159,10 +165,13 @@ class BlocklyPanel(QtWidgets.QWidget):
 
     def _render_debug_state(self) -> None:
         snapshot = self.debug_snapshots[self.debug_index]
-        variables = "\n".join(
-            f"  {name} = {value}"
-            for name, value in sorted(snapshot.variables.items())
-        ) or "  (none)"
+        variables = (
+            "\n".join(
+                f"  {name} = {value}"
+                for name, value in sorted(snapshot.variables.items())
+            )
+            or "  (none)"
+        )
         self.debug_view.setPlainText(
             f"Step {self.debug_index + 1} of {len(self.debug_snapshots)}\n"
             f"Source line: {snapshot.line_number}\n\n"
