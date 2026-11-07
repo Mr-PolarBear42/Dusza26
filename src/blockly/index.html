@@ -156,6 +156,7 @@
       return topBlocks.flatMap(block => linesFrom(block, 0)).join("\n");
     }
     function highlightLine(line) {
+      generatedCode();
       const blockId = lineToBlockId.get(Number(line)) || null;
       workspace.highlightBlock(blockId);
     }
