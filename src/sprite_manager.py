@@ -11,8 +11,7 @@ class SpriteManager:
             ".": QtGui.QPixmap(resource_path("assets/sprites/ground.png")),
             "#": QtGui.QPixmap(resource_path("assets/sprites/rock.png")),
             "@": QtGui.QPixmap(resource_path("assets/sprites/gold.png")),
-            "ROVER": QtGui.QPixmap(resource_path("assets/sprites/rover.png")),
-            "PATHICON": QtGui.QPixmap(resource_path("assets/sprites/path_icon.png"))
+            "ROVER": QtGui.QPixmap(resource_path("assets/sprites/robot.png"))
         }
 
         for name, pixmap in self.sprites.items():

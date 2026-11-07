@@ -32,5 +32,8 @@ class Ide:
 
         self.win.setCentralWidget(centralWidget)
 
+        mapWidget.load_map(map, w, h, 0, 0, Direction)
+        mapWidget.render_map()
+
         self.win.showMaximized()
         sys.exit(app.exec())
