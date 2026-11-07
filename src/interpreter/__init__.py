@@ -1,5 +1,5 @@
-from .dummy_robot import DummyRobot
 from .interpreter import Interpreter
 from .logging import ExecutionLog
+from .robot import Robot
 
-__all__ = ["DummyRobot", "ExecutionLog", "Interpreter"]
+__all__ = ["ExecutionLog", "Interpreter", "Robot"]
