@@ -23,10 +23,10 @@ class MapViewer(QtWidgets.QGraphicsView):
 
         self._robot_x = 0
         self._robot_y = 0
-        #0 -- north
-        #1 -- east
-        #2 -- south
-        #3 -- west
+        # 0 -- north
+        # 1 -- east
+        # 2 -- south
+        # 3 -- west
         self._robot_face = 0
 
         self._map_data: list[list[str, str]] = None
@@ -34,7 +34,7 @@ class MapViewer(QtWidgets.QGraphicsView):
         self._map_height = 0
 
         self.clicked = False
-        self.first_click: callable[None, None] = lambda:None
+        self.first_click: callable[None, None] = lambda: None
 
         self._scene: QtWidgets.QGraphicsScene = QtWidgets.QGraphicsScene(self)
         self.setScene(self._scene)
@@ -55,7 +55,7 @@ class MapViewer(QtWidgets.QGraphicsView):
             start_y = y * self.tile_size / 4
             for x in range(self._map_width):
                 sprite = self.sprite_manager.get_sprite(".")
-                print(sprite.width())
+
                 if sprite:
                     item = QtWidgets.QGraphicsPixmapItem(sprite)
                     item.setScale(self.tile_size / sprite.width())
@@ -64,6 +64,21 @@ class MapViewer(QtWidgets.QGraphicsView):
                         start_y + x * self.tile_size / 4,
                     )
                     self._scene.addItem(item)
+                    
+        for y in range(self._map_height):
+            start_x = -y * self.tile_size / 2
+            start_y = y * self.tile_size / 4
+            for x in range(self._map_width):
+                if self._map_data[y][x] != ".":
+                    sprite = self.sprite_manager.get_sprite(self._map_data[y][x])
+                    if sprite:
+                        item = QtWidgets.QGraphicsPixmapItem(sprite)
+                        item.setScale(self.tile_size / sprite.width())
+                        item.setPos(
+                            start_x + x * self.tile_size / 2,
+                            start_y + x * self.tile_size / 4 - self.tile_size / 2,
+                        )
+                        self._scene.addItem(item)
 
     # override cursor changes while dragging
     def mousePressEvent(self, event):
@@ -78,7 +93,6 @@ class MapViewer(QtWidgets.QGraphicsView):
         if event.button() == QtCore.Qt.MouseButton.LeftButton:
             self.setCursor(QtCore.Qt.CursorShape.OpenHandCursor)
         super().mouseReleaseEvent(event)
-
 
     def wheelEvent(self, event):
         # zoom the view when wheel is rotated; keep within reasonable bounds
