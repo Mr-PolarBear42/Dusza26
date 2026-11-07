@@ -1,8 +1,9 @@
+from copy import deepcopy
+
 from PyQt6 import QtCore, QtGui, QtWidgets
 
 from sprite_manager import SpriteManager
 from utils.enums import Direction
-from copy import deepcopy
 
 dir_to_arrow = {
     Direction.NORTH: "^",
@@ -55,7 +56,7 @@ class MapViewer(QtWidgets.QGraphicsView):
         robot_face: Direction,
     ):
         self._initial_map = map
-        
+
         self._map_data = deepcopy(map)
         self._robot_x = robot_x
         self._robot_y = robot_y
@@ -127,7 +128,7 @@ class MapViewer(QtWidgets.QGraphicsView):
                         start_y + x * self.tile_size / 4,
                     )
                     self._scene.addItem(item)
-                    
+
         self._add_items()
 
     def remove_item(self, x: int, y: int):
@@ -153,7 +154,12 @@ class MapViewer(QtWidgets.QGraphicsView):
         mined_at = state.get("mined_at", ())
         if not isinstance(row, int) or not isinstance(column, int):
             return
-        directions = {"^": Direction.NORTH, ">": Direction.EAST, "v": Direction.SOUTH, "<": Direction.WEST}
+        directions = {
+            "^": Direction.NORTH,
+            ">": Direction.EAST,
+            "v": Direction.SOUTH,
+            "<": Direction.WEST,
+        }
         direction = directions.get(facing)
         if direction is None:
             return

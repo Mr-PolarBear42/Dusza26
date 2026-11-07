@@ -3,6 +3,7 @@ from PyQt6 import QtCore, QtGui, QtWidgets
 from blockly_editor import BlocklyEditor
 from interpreter import Interpreter, Robot
 from interpreter.state_snapshot import StateSnapshot
+from minescript_highlighter import MineScriptHighlighter
 from utils.arrow_to_direction import arrow_to_direction
 
 
@@ -63,6 +64,10 @@ class BlocklyPanel(QtWidgets.QWidget):
         )
 
         self.source_view = QtWidgets.QPlainTextEdit()
+        self.source_view.setFont(QtGui.QFont("Consolas", 12))
+        self.source_view_highlighter = MineScriptHighlighter(
+            self.source_view.document()
+        )
         self.source_view.setReadOnly(True)
         self.source_view.setPlaceholderText("Generated Minescript will appear here.")
         self.source_view.setPlainText(source)
@@ -97,11 +102,14 @@ class BlocklyPanel(QtWidgets.QWidget):
         action_buttons.addWidget(execute_button)
         action_buttons.addWidget(debug_button)
 
+        editor_output_group = QtWidgets.QSplitter(QtCore.Qt.Orientation.Vertical)
+        editor_output_group.addWidget(self.blockly_editor)
+        editor_output_group.addWidget(self.output_tabs)
+
         layout = QtWidgets.QVBoxLayout(self)
         layout.addLayout(action_buttons)
         layout.addWidget(self.debug_controls)
-        layout.addWidget(self.blockly_editor)
-        layout.addWidget(self.output_tabs)
+        layout.addWidget(editor_output_group)
         layout.setStretch(2, 3)
         layout.setStretch(3, 2)
 
@@ -140,7 +148,9 @@ class BlocklyPanel(QtWidgets.QWidget):
         self._emit_map_reset()
         try:
             robot = Robot.from_map(["".join(row) for row in self.map_data])
-            self._emit_robot_state(robot.row, robot.column, robot.direction, robot.mined_positions)
+            self._emit_robot_state(
+                robot.row, robot.column, robot.direction, robot.mined_positions
+            )
             interpreter = Interpreter(robot)
             log = interpreter.run(self.code)
         except ValueError as error:
@@ -178,6 +188,7 @@ class BlocklyPanel(QtWidgets.QWidget):
                 self._execution_timer.start()
             self._hide_debug_panel()
             self._clear_highlight()
+            self.output_tabs.setCurrentWidget(self.log_view)
 
     def _select_debug_step(self, delta: int) -> None:
         if not self.debugging or not self.debug_snapshots:
