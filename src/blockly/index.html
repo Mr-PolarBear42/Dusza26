@@ -1,0 +1,360 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Minescript Blockly editor</title>
+  <script src="blockly.min.js"></script>
+  <script src="qrc:///qtwebchannel/qwebchannel.js"></script>
+  <style>
+    html, body, #blocklyDiv { height: 100%; margin: 0; overflow: hidden; }
+    #status { background: #202124; color: #e8eaed; font: 13px sans-serif; padding: 5px 10px; }
+    #blocklyDiv { height: calc(100% - 25px); }
+  </style>
+</head>
+<body>
+  <div id="status">Minescript Blockly</div>
+  <div id="blocklyDiv"></div>
+  <xml id="toolbox" style="display:none">
+    <category name="Commands" colour="#4C97FF">
+      <block type="set"></block><sep gap="8"></sep><block type="step"></block>
+      <sep gap="8"></sep><block type="turn"></block><sep gap="8"></sep>
+      <block type="mine"></block><sep gap="8"></sep><block type="print"></block>
+      <sep gap="8"></sep><block type="raw_line"></block>
+    </category>
+    <category name="Control" colour="#FFAB19">
+      <block type="if"></block><sep gap="8"></sep><block type="while"></block>
+    </category>
+    <category name="Values" colour="#9966FF">
+      <block type="number"></block><sep gap="8"></sep><block type="boolean"></block>
+      <sep gap="8"></sep><block type="variable"></block><sep gap="8"></sep>
+      <block type="is_there"></block><sep gap="8"></sep><block type="not"></block>
+      <sep gap="8"></sep><block type="binary"></block>
+    </category>
+  </xml>
+  <script>
+    let workspace;
+    let bridge;
+    let pendingSource = "";
+    let generatedLine = 0;
+    const lineToBlockId = new Map();
+
+    function field(block, name, fallback) {
+      return block.getFieldValue(name) || fallback;
+    }
+
+    Blockly.Blocks.number = { init() {
+      this.appendDummyInput().appendField(new Blockly.FieldNumber(0, 0), "VALUE");
+      this.setOutput(true, "Number"); this.setColour("#9966FF");
+    }};
+    Blockly.Blocks.boolean = { init() {
+      this.appendDummyInput().appendField(new Blockly.FieldDropdown([["true", "true"], ["false", "false"]]), "VALUE");
+      this.setOutput(true, "Boolean"); this.setColour("#9966FF");
+    }};
+    Blockly.Blocks.variable = { init() {
+      this.appendDummyInput().appendField("variable").appendField(new Blockly.FieldTextInput("value"), "NAME");
+      this.setOutput(true); this.setColour("#9966FF");
+    }};
+    Blockly.Blocks.is_there = { init() {
+      this.appendValueInput("KIND").setCheck("Number").appendField("isThere");
+      this.setOutput(true, "Boolean"); this.setColour("#9966FF");
+    }};
+    Blockly.Blocks.not = { init() {
+      this.appendValueInput("VALUE").setCheck("Boolean").appendField("not");
+      this.setOutput(true, "Boolean"); this.setColour("#9966FF");
+    }};
+    Blockly.Blocks.binary = { init() {
+      this.appendValueInput("LEFT").appendField("");
+      this.appendDummyInput().appendField(new Blockly.FieldDropdown([
+        ["+", "+"], ["-", "-"], ["*", "*"], ["=", "="], ["<>", "<>"],
+        ["<", "<"], ["<=", "<="], [">", ">"], [">=", ">="], ["and", "and"], ["or", "or"]
+      ]), "OP");
+      this.appendValueInput("RIGHT"); this.setOutput(true); this.setColour("#9966FF");
+    }};
+    Blockly.Blocks.set = { init() {
+      this.appendValueInput("VALUE").appendField("set")
+        .appendField(new Blockly.FieldTextInput("value"), "NAME").appendField("to");
+      this.setPreviousStatement(true); this.setNextStatement(true); this.setColour("#4C97FF");
+    }};
+    Blockly.Blocks.step = { init() {
+      this.appendValueInput("VALUE").setCheck("Number").appendField("step forward");
+      this.setPreviousStatement(true); this.setNextStatement(true); this.setColour("#4C97FF");
+    }};
+    Blockly.Blocks.turn = { init() {
+      this.appendValueInput("VALUE").setCheck("Number").appendField("turn by");
+      this.setPreviousStatement(true); this.setNextStatement(true); this.setColour("#4C97FF");
+    }};
+    Blockly.Blocks.mine = { init() {
+      this.appendDummyInput().appendField("mine here");
+      this.setPreviousStatement(true); this.setNextStatement(true); this.setColour("#4C97FF");
+    }};
+    Blockly.Blocks.print = { init() {
+      this.appendValueInput("VALUE").appendField("print");
+      this.setPreviousStatement(true); this.setNextStatement(true); this.setColour("#4C97FF");
+    }};
+    Blockly.Blocks.if = { init() {
+      this.appendValueInput("CONDITION").setCheck("Boolean").appendField("if");
+      this.appendStatementInput("THEN").appendField("then");
+      this.appendStatementInput("ELSE").appendField("else");
+      this.setPreviousStatement(true); this.setNextStatement(true); this.setColour("#FFAB19");
+    }};
+    Blockly.Blocks.while = { init() {
+      this.appendValueInput("CONDITION").setCheck("Boolean").appendField("while");
+      this.appendStatementInput("DO").appendField("do");
+      this.setPreviousStatement(true); this.setNextStatement(true); this.setColour("#FFAB19");
+    }};
+
+    function valueCode(block, name) {
+      const child = block.getInputTargetBlock(name);
+      return child ? generateValue(child) : "0";
+    }
+    function generateValue(block) {
+      switch (block.type) {
+        case "number": case "boolean": return field(block, "VALUE", "0");
+        case "variable": return field(block, "NAME", "value");
+        case "is_there": return "isThere " + valueCode(block, "KIND");
+        case "not": return "not " + valueCode(block, "VALUE");
+        case "binary": return valueCode(block, "LEFT") + " " + field(block, "OP", "+") + " " + valueCode(block, "RIGHT");
+        default: return "0";
+      }
+    }
+    function linesFrom(first, indent) {
+      const lines = [];
+      for (let block = first; block; block = block.getNextBlock()) {
+        const pad = " ".repeat(indent);
+        const addLine = text => {
+          generatedLine += 1;
+          block.sourceLine = generatedLine;
+          lineToBlockId.set(generatedLine, block.id);
+          lines.push(pad + text);
+        };
+        if (block.type === "set") addLine("set " + field(block, "NAME", "value") + " to " + valueCode(block, "VALUE"));
+        else if (block.type === "step") addLine("step forward " + valueCode(block, "VALUE"));
+        else if (block.type === "turn") addLine("turn by " + valueCode(block, "VALUE"));
+        else if (block.type === "mine") addLine("mine here");
+        else if (block.type === "print") addLine("print " + valueCode(block, "VALUE"));
+        else if (block.type === "raw_line") addLine(field(block, "CODE", ""));
+        else if (block.type === "while") {
+          addLine("while " + valueCode(block, "CONDITION"));
+          lines.push(...linesFrom(block.getInputTargetBlock("DO"), indent + 2));
+        } else if (block.type === "if") {
+          addLine("if " + valueCode(block, "CONDITION"));
+          lines.push(...linesFrom(block.getInputTargetBlock("THEN"), indent + 2));
+          const otherwise = block.getInputTargetBlock("ELSE");
+          if (otherwise) {
+            generatedLine += 1;
+            lineToBlockId.set(generatedLine, null);
+            lines.push(pad + "else");
+            lines.push(...linesFrom(otherwise, indent + 2));
+          }
+        }
+      }
+      return lines;
+    }
+    function generatedCode() {
+      generatedLine = 0;
+      lineToBlockId.clear();
+      const topBlocks = workspace.getTopBlocks(true)
+        .sort((a, b) => a.getBoundingRectangle().top - b.getBoundingRectangle().top);
+      return topBlocks.flatMap(block => linesFrom(block, 0)).join("\n");
+    }
+    function highlightLine(line) {
+      const blockId = lineToBlockId.get(Number(line)) || null;
+      workspace.highlightBlock(blockId);
+    }
+    function clearHighlight() {
+      workspace.highlightBlock(null);
+    }
+    function setDarkMode(dark) {
+      const theme = Blockly.Theme.defineTheme("qt", {
+        base: Blockly.Themes.Classic,
+        componentStyles: {
+          workspaceBackgroundColour: dark ? "#1e1e1e" : "#ffffff",
+          toolboxBackgroundColour: dark ? "#252526" : "#eeeeee",
+          toolboxForegroundColour: dark ? "#ffffff" : "#222222",
+          flyoutBackgroundColour: dark ? "#333333" : "#dddddd",
+          flyoutForegroundColour: dark ? "#ffffff" : "#222222",
+          flyoutOpacity: 0.96,
+          scrollbarColour: dark ? "#797979" : "#a0a0a0",
+          insertionMarkerColour: dark ? "#ffffff" : "#000000",
+          insertionMarkerOpacity: 0.3,
+          markerColour: dark ? "#ffffff" : "#000000",
+          cursorColour: dark ? "#ffffff" : "#000000"
+        }
+      });
+      workspace.setTheme(theme);
+    }
+    function spaceFlyoutBlocks() {
+      const flyoutWorkspace = workspace.getToolbox().getFlyout().getWorkspace();
+      let y = 0;
+      flyoutWorkspace.getTopBlocks(false).forEach(block => {
+        const position = block.getRelativeToSurfaceXY();
+        block.moveBy(-position.x, y - position.y);
+        y += block.getHeightWidth().height + 8;
+      });
+    }
+    function publish() {
+      const code = generatedCode();
+      document.getElementById("status").textContent = "Generated " + code.split("\n").filter(Boolean).length + " line(s)";
+      if (bridge) bridge.update_code(code);
+    }
+    function importSource(source) {
+      workspace.clear();
+      const lines = source.split(/\r?\n/)
+        .map((text, index) => ({ text, number: index + 1 }))
+        .filter(line => line.text.trim());
+      const roots = parseStatements(lines, 0, lines.length, lines[0]?.text.search(/\S/) ?? 0).blocks;
+      connectStatementList(roots);
+      workspace.render();
+      publish();
+    }
+    function newBlock(type) {
+      const block = workspace.newBlock(type);
+      block.initSvg();
+      return block;
+    }
+    function connectStatementList(blocks) {
+      for (let index = 1; index < blocks.length; index += 1) {
+        blocks[index - 1].nextConnection.connect(blocks[index].previousConnection);
+      }
+      blocks.forEach(block => block.render());
+      return blocks[0] || null;
+    }
+    function connectStatementInput(parent, inputName, blocks) {
+      const first = connectStatementList(blocks);
+      if (first) parent.getInput(inputName).connection.connect(first.previousConnection);
+    }
+    function expressionBlock(text) {
+      text = text.trim();
+      if (/^\d+$/.test(text)) {
+        const block = newBlock("number");
+        block.setFieldValue(text, "VALUE");
+        return block;
+      }
+      if (text === "true" || text === "false") {
+        const block = newBlock("boolean");
+        block.setFieldValue(text, "VALUE");
+        return block;
+      }
+      if (text.startsWith("isThere ")) {
+        const block = newBlock("is_there");
+        block.getInput("KIND").connection.connect(expressionBlock(text.slice(8)).outputConnection);
+        return block;
+      }
+      if (text.startsWith("not ")) {
+        const block = newBlock("not");
+        block.getInput("VALUE").connection.connect(expressionBlock(text.slice(4)).outputConnection);
+        return block;
+      }
+      const binary = text.match(/^(.+?)\s+(<=|>=|<>|=|<|>|\+|-|\*|and|or)\s+(.+)$/);
+      if (binary) {
+        const block = newBlock("binary");
+        block.setFieldValue(binary[2], "OP");
+        block.getInput("LEFT").connection.connect(expressionBlock(binary[1]).outputConnection);
+        block.getInput("RIGHT").connection.connect(expressionBlock(binary[3]).outputConnection);
+        return block;
+      }
+      const variable = newBlock("variable");
+      variable.setFieldValue(text, "NAME");
+      return variable;
+    }
+    function statementBlock(text) {
+      let match = text.match(/^set\s+(\w+)\s+to\s+(.+)$/);
+      if (match) {
+        const block = newBlock("set");
+        block.setFieldValue(match[1], "NAME");
+        block.getInput("VALUE").connection.connect(expressionBlock(match[2]).outputConnection);
+        return block;
+      }
+      match = text.match(/^step\s+forward\s+(.+)$/);
+      if (match) {
+        const block = newBlock("step");
+        block.getInput("VALUE").connection.connect(expressionBlock(match[1]).outputConnection);
+        return block;
+      }
+      match = text.match(/^turn\s+by\s+(.+)$/);
+      if (match) {
+        const block = newBlock("turn");
+        block.getInput("VALUE").connection.connect(expressionBlock(match[1]).outputConnection);
+        return block;
+      }
+      if (text === "mine here") return newBlock("mine");
+      match = text.match(/^print\s+(.+)$/);
+      if (match) {
+        const block = newBlock("print");
+        block.getInput("VALUE").connection.connect(expressionBlock(match[1]).outputConnection);
+        return block;
+      }
+      return null;
+    }
+    function parseStatements(lines, start, end, indent) {
+      const blocks = [];
+      let index = start;
+      while (index < end) {
+        const line = lines[index];
+        const currentIndent = line.text.search(/\S/);
+        if (currentIndent < indent) break;
+        if (currentIndent > indent) {
+          index += 1;
+          continue;
+        }
+        const text = line.text.trim();
+        if (text === "else") break;
+        let block = statementBlock(text);
+        if (text.startsWith("if ") || text.startsWith("while ")) {
+          const isIf = text.startsWith("if ");
+          block = newBlock(isIf ? "if" : "while");
+          block.getInput("CONDITION").connection.connect(
+            expressionBlock(text.slice(isIf ? 3 : 6)).outputConnection
+          );
+          index += 1;
+          if (index < end && lines[index].text.search(/\S/) > indent) {
+            const childIndent = lines[index].text.search(/\S/);
+            const body = parseStatements(lines, index, end, childIndent);
+            const inputName = isIf ? "THEN" : "DO";
+            connectStatementInput(block, inputName, body.blocks);
+            index = body.index;
+          }
+          if (isIf && index < end && lines[index].text.trim() === "else") {
+            index += 1;
+            if (index < end && lines[index].text.search(/\S/) > indent) {
+              const childIndent = lines[index].text.search(/\S/);
+              const otherwise = parseStatements(lines, index, end, childIndent);
+              connectStatementInput(block, "ELSE", otherwise.blocks);
+              index = otherwise.index;
+            }
+          }
+        } else {
+          index += 1;
+        }
+        if (!block) {
+          block = newBlock("raw_line");
+          block.setFieldValue(text, "CODE");
+        }
+        blocks.push(block);
+      }
+      return { blocks, index };
+    }
+    workspace = Blockly.inject("blocklyDiv", {
+      toolbox: document.getElementById("toolbox"),
+      media: "media/",
+      trashcan: true,
+      zoom: { controls: true, wheel: true }
+    });
+    const flyout = workspace.getToolbox().getFlyout();
+    const originalFlyoutShow = flyout.show.bind(flyout);
+    flyout.show = contents => {
+      originalFlyoutShow(contents);
+      requestAnimationFrame(spaceFlyoutBlocks);
+    };
+    setInterval(() => {
+      if (flyout.isVisible()) spaceFlyoutBlocks();
+    }, 100);
+    workspace.addChangeListener(event => { if (!event.isUiEvent) publish(); });
+    new QWebChannel(qt.webChannelTransport, channel => {
+      bridge = channel.objects.bridge;
+      bridge.ready.connect(source => { pendingSource = source; importSource(source); });
+    });
+  </script>
+</body>
+</html>

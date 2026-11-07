@@ -13,7 +13,7 @@ from interpreter import DummyRobot, Interpreter  # noqa: E402
 def run_program():
     def run(map_rows: list[str], source: str, **kwargs: object):
         robot = DummyRobot.from_map(map_rows)
-        log = Interpreter(robot, **kwargs).run(source)
+        log = Interpreter(robot, **kwargs).run(source) #type: ignore
         return robot, log.lines
 
     return run
@@ -246,3 +246,32 @@ def test_state_snapshots_are_cleared_between_runs():
     assert interpreter.state_snapshots[1].robot_direction == ">"
     assert interpreter.state_snapshots[2].robot_direction == ">"
     assert interpreter.state_snapshots[3].robot_direction == "^"
+
+def test_entry_snapshots_capture_state_before_each_statement():
+    robot = DummyRobot.from_map([">."])
+    interpreter = Interpreter(robot)
+    interpreter.run("set value to 1\nstep forward 1\nprint value")
+
+    assert [snapshot.line_number for snapshot in interpreter.entry_snapshots] == [1, 2, 3]
+    assert interpreter.entry_snapshots[0].variables == {}
+    assert interpreter.entry_snapshots[0].robot_position == (0, 0)
+    assert interpreter.entry_snapshots[1].variables == {"value": 1}
+    assert interpreter.entry_snapshots[1].robot_position == (0, 0)
+    assert interpreter.entry_snapshots[2].robot_position == (0, 1)
+
+def test_entry_snapshot_is_recorded_when_statement_fails():
+    robot = DummyRobot.from_map([">"])
+    interpreter = Interpreter(robot)
+    interpreter.run("step forward 1")
+
+    assert len(interpreter.entry_snapshots) == 1
+    assert interpreter.entry_snapshots[0].line_number == 1
+    assert interpreter.entry_snapshots[0].robot_position == (0, 0)
+
+def test_entry_snapshots_record_log_positions():
+    robot = DummyRobot.from_map([">"])
+    interpreter = Interpreter(robot)
+    log = interpreter.run("set value to 1\nprint value")
+
+    assert interpreter.entry_log_indices == [0, 0]
+    assert log.lines == ("2 print 1", "EOR")

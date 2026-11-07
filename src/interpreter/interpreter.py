@@ -31,12 +31,16 @@ class Interpreter:
         self._current_line = 0
         self._api_error: tuple[str, Any] | None = None
         self.state_snapshots: list[StateSnapshot] = []
+        self.entry_snapshots: list[StateSnapshot] = []
+        self.entry_log_indices: list[int] = []
 
     def reset(self) -> None:
         """Resets the Interpreter to its initial state, clearing variables and logs."""
         self.variables = {}
         self.log = ExecutionLog()
         self.state_snapshots = []
+        self.entry_snapshots = []
+        self.entry_log_indices = []
         self._instruction_count = 0
         self._current_line = 0
         self._api_error = None
@@ -89,6 +93,15 @@ class Interpreter:
             raise InstructionLimitExceeded
         self._current_line = command.line
         self._api_error = None
+        self.entry_snapshots.append(
+            StateSnapshot(
+                self.variables.copy(),
+                command.line,
+                (self.robot.row, self.robot.column),
+                self.robot.direction,
+            )
+        )
+        self.entry_log_indices.append(len(self.log.lines))
         try:
             self._execute_inner(command)
         except RuntimeErrorCode as error:
