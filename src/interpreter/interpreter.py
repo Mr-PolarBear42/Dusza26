@@ -37,7 +37,27 @@ class Interpreter:
         self._current_line = 0
         self._api_error: tuple[str, Any] | None = None
 
+    def reset(self) -> None:
+        """Resets the Interpreter to its initial state, clearing variables and logs."""
+        self.variables = {}
+        self.log = ExecutionLog()
+        self._instruction_count = 0
+        self._current_line = 0
+        self._api_error = None
+        
     def run(self, source: str) -> ExecutionLog:
+        """Runs the code provided in the source string, executing commands and logging the results.
+
+        Args:
+            source (str): The source code to be executed by the interpreter.
+
+        Returns:
+            ExecutionLog: An ExecutionLog object containing the results of the execution, including any errors encountered.
+        Raises:
+            InstructionLimitExceeded: If the number of executed instructions exceeds the maximum allowed.
+            ProgramTerminated: If the program is terminated due to an error.
+        """
+        self.reset()
         commands = _parse(source)
         try:
             self._execute_block(commands)
@@ -50,10 +70,24 @@ class Interpreter:
         return self.log
 
     def _execute_block(self, commands: list[_Command]) -> None:
+        """Executes a block of commands, handling each command in sequence.
+
+        Args:
+            commands (list[_Command]): The commands to be executed in the block.
+        """
         for command in commands:
             self._execute(command)
 
     def _execute(self, command: _Command) -> None:
+        """Executes a Single command, handling instruction counting and error logging.
+
+        Args:
+            command (_Command): The command to be executed.
+
+        Raises:
+            InstructionLimitExceeded: If the number of executed instructions exceeds the maximum allowed.
+            ProgramTerminated: If the program is terminated due to an error during command execution.
+        """
         self._instruction_count += 1
         if self._instruction_count > self.max_instructions:
             raise InstructionLimitExceeded
@@ -71,12 +105,20 @@ class Interpreter:
             raise ProgramTerminated from error
 
     def _execute_inner(self, command: _Command) -> None:
+        """Executes the inner logic of a command, determining the type of command and performing the appropriate action.
+
+        Args:
+            command (_Command): The command to be executed.
+
+        Raises:
+            RuntimeErrorCode: If an error occurs during command execution, such as a bad argument or type mismatch.
+        """
         tokens = command.tokens
         keyword = tokens[0]
         if keyword == "set":
             self._set(command)
         elif keyword == "if":
-            self._condition(command, repeat=False)
+            self._condition(command)
         elif keyword == "while":
             first_iteration = True
             while True:
@@ -113,12 +155,21 @@ class Interpreter:
             raise RuntimeErrorCode("E_BAD_ARG")
 
     def _set(self, command: _Command) -> None:
+        """Sets a variable to a calculated value, checking for type mismatches and logging the operation.
+
+        Args:
+            command (_Command): Command containing the variable name and the expression to be evaluated.
+
+        Raises:
+            RuntimeErrorCode: E_TYPE_MISMATCH if the variable already exists and the new value's type does not match the existing type.
+        """
         value = self._evaluate_calculated(command.tokens[3:])
         if command.tokens[1] in self.variables and type(self.variables[command.tokens[1]]) is not type(value):
             raise RuntimeErrorCode("E_TYPE_MISMATCH")
         self.variables[command.tokens[1]] = value
 
-    def _condition(self, command: _Command, repeat: bool) -> None:
+    def _condition(self, command: _Command) -> None:
+        """Evaluates a condition for an 'if' command and executes the appropriate block of commands based on the result."""
         condition = self._evaluate(command.tokens[1])
         if not isinstance(condition, bool):
             raise RuntimeErrorCode("E_NON_BOOL_CONDITION")
@@ -134,14 +185,30 @@ class Interpreter:
             self._execute_block(command.otherwise)
 
     def _log_control(self, command: _Command) -> None:
+        """Logs the control flow of a command"""
         self.log.record(command.line)
 
     def _consume_instruction(self) -> None:
+        """
+        Increments the instruction count and checks if it exceeds the maximum allowed instructions.
+        Raises:
+            InstructionLimitExceeded: If the number of executed instructions exceeds the maximum allowed.
+        """
         self._instruction_count += 1
         if self._instruction_count > self.max_instructions:
             raise InstructionLimitExceeded
 
     def _api(self, command: _Command, name: str, value: Any, action: Any) -> None:
+        """Executes an API action and logs the result, handling any runtime errors that may occur.
+
+        Args:
+            command (_Command): The command being executed, used for logging the line number.
+            name (str): Name of the API action being executed, used for logging.
+            value (Any): Value associated with the API action, used for logging.
+            action (Any): The callable action to be executed, which may raise a RuntimeErrorCode.
+        Raises:
+            RuntimeErrorCode: If an error occurs during the execution of the API action.
+        """
         try:
             action()
         except RuntimeErrorCode as error:
@@ -150,6 +217,7 @@ class Interpreter:
         self.log.record(command.line, name, *(("" if value is None else (value,))))
 
     def _evaluate_calculated(self, tokens: list[str]) -> Any:
+        """Evaluates a calculated expression represented by a list of tokens."""
         if len(tokens) == 1:
             return self._evaluate(tokens[0])
         if len(tokens) == 2 and tokens[0] == "not":
@@ -159,6 +227,7 @@ class Interpreter:
             return not value
         if len(tokens) == 3:
             left = self._evaluate(tokens[0])
+            self._validate_first_operand(tokens[1], left)
             right = self._evaluate(tokens[2])
             return self._binary(tokens[1], left, right)
         if len(tokens) == 2 and tokens[0] == "isThere":
@@ -166,6 +235,7 @@ class Interpreter:
         raise RuntimeErrorCode("E_BAD_ARG")
 
     def _evaluate(self, token: str) -> Any:
+        """Evaluates a single token, returning its corresponding value."""
         if token == "true":
             return True
         if token == "false":
@@ -179,6 +249,7 @@ class Interpreter:
         raise RuntimeErrorCode("E_UNINITIALIZED")
 
     def _is_there(self, token: str) -> bool:
+        """Evaluates the 'isThere' command, checking if a specific kind of object is present in front of the robot."""
         self._api_error = ("isThere", None)
         value = self._evaluate(token)
         if not isinstance(value, int) or isinstance(value, bool):
@@ -197,13 +268,38 @@ class Interpreter:
         if not isinstance(value, int) or isinstance(value, bool):
             raise RuntimeErrorCode(code)
 
+    @classmethod
+    def _validate_first_operand(cls, operator: str, value: Any) -> None:
+        if operator in {"+", "-", "*", "<", "<=", ">", ">="}:
+            cls._require_int(value, "E_BAD_OPERAND")
+        elif operator in {"and", "or"} and not isinstance(value, bool):
+            raise RuntimeErrorCode("E_BAD_OPERAND")
+
     def _binary(self, operator: str, left: Any, right: Any) -> Any:
+        """Evaluates a binary operation between two operands, checking for type compatibility and returning the result.
+
+        Args:
+            operator (str): The binary operator to be applied (e.g., "+", "-", "*", "and", "or", "=", "<>", etc.).
+            left (Any): The left operand of the binary operation.
+            right (Any): The right operand of the binary operation.
+
+        Raises:
+            RuntimeErrorCode: If the operands are of incompatible types for the given operator, or if the operator is not recognized.
+    
+        Returns:
+            Any: The result of the binary operation, which can be an integer or boolean depending on the operator and operands.
+        """
         if operator in {"+", "-", "*", "<", "<=", ">", ">="}:
             self._require_int(left, "E_BAD_OPERAND")
             self._require_int(right, "E_BAD_OPERAND")
-            return {"+": lambda: left + right, "-": lambda: left - right, "*": lambda: left * right,
-                    "<": lambda: left < right, "<=": lambda: left <= right,
-                    ">": lambda: left > right, ">=": lambda: left >= right}[operator]()
+            return {"+": lambda: left + right, 
+                    "-": lambda: left - right, 
+                    "*": lambda: left * right,
+                    "<": lambda: left < right,
+                    "<=": lambda: left <= right,
+                    ">": lambda: left > right, 
+                    ">=": lambda: left >= right}[operator]()
+                    
         if operator in {"and", "or"}:
             if not isinstance(left, bool) or not isinstance(right, bool):
                 raise RuntimeErrorCode("E_BAD_OPERAND")
@@ -216,6 +312,14 @@ class Interpreter:
 
 
 def _parse(source: str) -> list[_Command]:
+    """Parses the source code into a list of commands, handling indentation and block structures.
+
+    Args:
+        source (str): The source code to be parsed into commands.
+
+    Returns:
+        list[_Command]: A list of _Command objects representing the parsed commands, including their line numbers, tokens, and any nested blocks for control structures.
+    """
     lines = [(number, len(text) - len(text.lstrip(" ")), text.strip().split(" "))
              for number, text in enumerate(source.splitlines(), 1) if text.strip()]
 

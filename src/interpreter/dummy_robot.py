@@ -1,3 +1,4 @@
+# !!! THIS IS ONLY FOR TESTING! THIS WON'T BE CLEANED UP NOR WILL IT BE USED IN THE SOLUTION.
 from dataclasses import dataclass, field
 
 from .errors import RuntimeErrorCode
@@ -36,7 +37,6 @@ class DummyRobot:  # !!! DO NOT USE THIS CLASS IN YOUR SOLUTION. IT IS ONLY FOR 
         if kind not in (0, 1, 2):
             raise RuntimeErrorCode("E_BAD_ARG")
         target = self._front()
-        self.discovered.add(target[:2])
         if not self._in_bounds(*target[:2]) or self.grid[target[0]][target[1]] == "#":
             return kind == 1
         return (kind == 2 and self.grid[target[0]][target[1]] == "@") or (
