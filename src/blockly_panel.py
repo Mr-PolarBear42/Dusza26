@@ -76,7 +76,7 @@ class BlocklyPanel(QtWidgets.QWidget):
         self.log_view.setReadOnly(True)
         self.log_view.setPlaceholderText("Execution logs will appear here.")
 
-        self.debug_panel = QtWidgets.QSplitter(QtCore.Qt.Orientation.Vertical)
+        self.debug_panel = QtWidgets.QSplitter(QtCore.Qt.Orientation.Horizontal)
         self.current_line_text = QtWidgets.QPlainTextEdit()
         self.current_line_text.setReadOnly(True)
         self.current_line_text.setPlaceholderText("Debugger state will appear here.")
