@@ -1,0 +1,94 @@
+import PyQt6.QtWidgets as QtWidgets
+import PyQt6.QtGui as QtGui
+import PyQt6.QtCore as QtCore
+
+from utils.enums import Direction
+
+from sprite_manager import SpriteManager
+
+class MapViewer(QtWidgets.QGraphicsView):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setRenderHint(QtGui.QPainter.RenderHint.Antialiasing)
+        self.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.setTransformationAnchor(QtWidgets.QGraphicsView.ViewportAnchor.AnchorUnderMouse)
+        self.setResizeAnchor(QtWidgets.QGraphicsView.ViewportAnchor.AnchorUnderMouse)
+        # enable built-in hand-drag mode for smoother panning
+        self.setDragMode(QtWidgets.QGraphicsView.DragMode.ScrollHandDrag)
+        self.setCursor(QtCore.Qt.CursorShape.OpenHandCursor)
+
+        self.sprite_manager = SpriteManager()
+        self.tile_size = 128  # size of each tile in pixels
+
+        self._robot_x = 0
+        self._robot_y = 0
+        #0 -- north
+        #1 -- east
+        #2 -- south
+        #3 -- west
+        self._robot_face = 0
+
+        self._map_data: list[list[str, str]] = None
+        self._map_width = 0
+        self._map_height = 0
+
+        self.clicked = False
+        self.first_click: callable[None, None] = lambda:None
+
+        self._scene: QtWidgets.QGraphicsScene = QtWidgets.QGraphicsScene(self)
+        self.setScene(self._scene)
+
+    def load_map(self, map: list[list[str]], w: int, h: int, robot_x: int, robot_y: int, robot_face: Direction):
+        self._map_data = map
+        self._robot_x = robot_x
+        self._robot_y = robot_y
+        self._robot_face = robot_face
+        self._map_width = w
+        self._map_height = h
+
+    def render_map(self):
+        self._scene.clear()
+        print("doing it")
+        for y in range(self._map_height):
+            start_x = -y * self.tile_size / 2
+            start_y = y * self.tile_size / 4
+            for x in range(self._map_width):
+                sprite = self.sprite_manager.get_sprite(".")
+                print(sprite.width())
+                if sprite:
+                    item = QtWidgets.QGraphicsPixmapItem(sprite)
+                    item.setScale(self.tile_size / sprite.width())
+                    item.setPos(
+                        start_x + x * self.tile_size / 2,
+                        start_y + x * self.tile_size / 4,
+                    )
+                    self._scene.addItem(item)
+
+    # override cursor changes while dragging
+    def mousePressEvent(self, event):
+        if not self.clicked:
+            self.first_click()
+            self.clicked = True
+        if event.button() == QtCore.Qt.MouseButton.LeftButton:
+            self.setCursor(QtCore.Qt.CursorShape.ClosedHandCursor)
+        super().mousePressEvent(event)
+
+    def mouseReleaseEvent(self, event):
+        if event.button() == QtCore.Qt.MouseButton.LeftButton:
+            self.setCursor(QtCore.Qt.CursorShape.OpenHandCursor)
+        super().mouseReleaseEvent(event)
+
+
+    def wheelEvent(self, event):
+        # zoom the view when wheel is rotated; keep within reasonable bounds
+        angle = event.angleDelta().y()
+        if angle == 0:
+            return
+        factor = 1.0 + (angle / 480.0)  # 240 corresponds to 15Â° steps; ~1.1 per notch
+        old_transform = self.transform()
+        scale_factor = old_transform.m11() * factor
+        # clamp between 0.1 and 10x
+        if 0.5 < scale_factor < 10:
+            self.scale(factor, factor)
+        event.accept()

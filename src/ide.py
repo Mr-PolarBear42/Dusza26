@@ -2,23 +2,24 @@ import sys
 
 import PyQt6.QtCore as qtc
 import PyQt6.QtWidgets as qtw
-from PyQt6.QtWidgets import QApplication, QMainWindow, QWidget
 
 from block_program import BlockProgram
+from map_viewer import MapViewer
+from utils.enums import Direction
 
 
 class Ide:
-    def __init__(self):
+    def __init__(self, map: list[list[str]], w: int, h: int, code: str):
 
-        app = QApplication(sys.argv)
+        app = qtw.QApplication(sys.argv)
 
-        self.win = QMainWindow()
+        self.win = qtw.QMainWindow()
         self.win.setWindowTitle("Arany Bánya")
 
         blockProgramWidget = BlockProgram()
-        mapWidget = qtw.QLabel("Vizualizáció")
+        mapWidget = MapViewer()
 
-        centralWidget = QWidget()
+        centralWidget = qtw.QWidget()
         mainLayout = qtw.QHBoxLayout(centralWidget)
         mainLayoutSplitter = qtw.QSplitter(qtc.Qt.Orientation.Horizontal, centralWidget)
 
