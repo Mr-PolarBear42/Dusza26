@@ -3,12 +3,28 @@ from typing import Any
 
 from .errors import InstructionLimitExceeded, ProgramTerminated, RuntimeErrorCode
 from .logging import ExecutionLog
+from .robot import Robot
 from .state_snapshot import StateSnapshot
-from .dummy_robot import DummyRobot
 
 KEYWORDS = {
-    "and", "by", "else", "false", "forward", "here", "if", "isThere",
-    "mine", "not", "or", "print", "set", "step", "to", "true", "turn", "while",
+    "and",
+    "by",
+    "else",
+    "false",
+    "forward",
+    "here",
+    "if",
+    "isThere",
+    "mine",
+    "not",
+    "or",
+    "print",
+    "set",
+    "step",
+    "to",
+    "true",
+    "turn",
+    "while",
 }
 
 
@@ -16,13 +32,13 @@ KEYWORDS = {
 class _Command:
     line: int
     tokens: list[str]
-    body: list["_Command"] | None = None
-    otherwise: list["_Command"] | None = None
+    body: list[_Command] | None = None
+    otherwise: list[_Command] | None = None
     else_line: int | None = None
 
 
 class Interpreter:
-    def __init__(self, robot: DummyRobot, max_instructions: int = 1000) -> None:
+    def __init__(self, robot: Robot, max_instructions: int = 1000) -> None:
         self.robot = robot
         self.max_instructions = max_instructions
         self.variables: dict[str, Any] = {}
@@ -44,7 +60,7 @@ class Interpreter:
         self._instruction_count = 0
         self._current_line = 0
         self._api_error = None
-        
+
     def run(self, source: str) -> ExecutionLog:
         """Runs the code provided in the source string, executing commands and logging the results.
 
@@ -109,7 +125,7 @@ class Interpreter:
             if self._api_error is None:
                 self.log.record(command.line, error=error.code)
             else:
-                api, value = self._api_error #type: ignore #??? Nem tudom miért, de a type checker szerint ez így nem ok, de hibát nem ad
+                api, value = self._api_error  # type: ignore #??? Nem tudom miért, de a type checker szerint ez így nem ok, de hibát nem ad
                 details = () if value is None else (value,)
                 self.log.record(command.line, api, *details, error=error.code)
             raise ProgramTerminated from error
@@ -157,7 +173,9 @@ class Interpreter:
             if not isinstance(value, int) or isinstance(value, bool):
                 self._api_error = ("step forward", value)
                 raise RuntimeErrorCode("E_BAD_ARG")
-            self._api(command, "step forward", value, lambda: self.robot.step_forward(value))
+            self._api(
+                command, "step forward", value, lambda: self.robot.step_forward(value)
+            )
         elif keyword == "turn":
             self._api_error = ("turn by", None)
             value = self._evaluate(tokens[2])
@@ -183,7 +201,9 @@ class Interpreter:
             RuntimeErrorCode: E_TYPE_MISMATCH if the variable already exists and the new value's type does not match the existing type.
         """
         value = self._evaluate_calculated(command.tokens[3:])
-        if command.tokens[1] in self.variables and type(self.variables[command.tokens[1]]) is not type(value):
+        if command.tokens[1] in self.variables and type(
+            self.variables[command.tokens[1]]
+        ) is not type(value):
             raise RuntimeErrorCode("E_TYPE_MISMATCH")
         self.variables[command.tokens[1]] = value
 
@@ -230,10 +250,10 @@ class Interpreter:
         """
         try:
             action()
-        except RuntimeErrorCode as error:
+        except RuntimeErrorCode:
             self._api_error = (name, value)
             raise
-        self.log.record(command.line, name, *(("" if value is None else (value,))))
+        self.log.record(command.line, name, *("" if value is None else (value,)))
 
     def _evaluate_calculated(self, tokens: list[str]) -> Any:
         """Evaluates a calculated expression represented by a list of tokens."""
@@ -304,21 +324,23 @@ class Interpreter:
 
         Raises:
             RuntimeErrorCode: If the operands are of incompatible types for the given operator, or if the operator is not recognized.
-    
+
         Returns:
             Any: The result of the binary operation, which can be an integer or boolean depending on the operator and operands.
         """
         if operator in {"+", "-", "*", "<", "<=", ">", ">="}:
             self._require_int(left, "E_BAD_OPERAND")
             self._require_int(right, "E_BAD_OPERAND")
-            return {"+": lambda: left + right, 
-                    "-": lambda: left - right, 
-                    "*": lambda: left * right,
-                    "<": lambda: left < right,
-                    "<=": lambda: left <= right,
-                    ">": lambda: left > right, 
-                    ">=": lambda: left >= right}[operator]()
-                    
+            return {
+                "+": lambda: left + right,
+                "-": lambda: left - right,
+                "*": lambda: left * right,
+                "<": lambda: left < right,
+                "<=": lambda: left <= right,
+                ">": lambda: left > right,
+                ">=": lambda: left >= right,
+            }[operator]()
+
         if operator in {"and", "or"}:
             if not isinstance(left, bool) or not isinstance(right, bool):
                 raise RuntimeErrorCode("E_BAD_OPERAND")
@@ -328,7 +350,6 @@ class Interpreter:
                 raise RuntimeErrorCode("E_BAD_OPERAND")
             return left == right if operator == "=" else left != right
         raise RuntimeErrorCode("E_BAD_ARG")
-    
 
 
 def _parse(source: str) -> list[_Command]:
@@ -340,8 +361,11 @@ def _parse(source: str) -> list[_Command]:
     Returns:
         list[_Command]: A list of _Command objects representing the parsed commands, including their line numbers, tokens, and any nested blocks for control structures.
     """
-    lines = [(number, len(text) - len(text.lstrip(" ")), text.strip().split(" "))
-             for number, text in enumerate(source.splitlines(), 1) if text.strip()]
+    lines = [
+        (number, len(text) - len(text.lstrip(" ")), text.strip().split(" "))
+        for number, text in enumerate(source.splitlines(), 1)
+        if text.strip()
+    ]
 
     def block(index: int, indent: int) -> tuple[list[_Command], int]:
         result: list[_Command] = []
@@ -349,9 +373,18 @@ def _parse(source: str) -> list[_Command]:
             line, _, tokens = lines[index]
             command = _Command(line, tokens)
             index += 1
-            if tokens[0] in {"if", "while"} and index < len(lines) and lines[index][1] > indent:
+            if (
+                tokens[0] in {"if", "while"}
+                and index < len(lines)
+                and lines[index][1] > indent
+            ):
                 command.body, index = block(index, lines[index][1])
-                if tokens[0] == "if" and index < len(lines) and lines[index][1] == indent and lines[index][2][0] == "else":
+                if (
+                    tokens[0] == "if"
+                    and index < len(lines)
+                    and lines[index][1] == indent
+                    and lines[index][2][0] == "else"
+                ):
                     command.else_line = lines[index][0]
                     index += 1
                     if index < len(lines) and lines[index][1] > indent:

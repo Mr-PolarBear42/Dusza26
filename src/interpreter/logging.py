@@ -1,5 +1,4 @@
 from pathlib import Path
-from typing import Optional
 
 
 class ExecutionLog:
@@ -9,9 +8,9 @@ class ExecutionLog:
     def record(
         self,
         line_number: int,
-        api: Optional[str] = None,
+        api: str | None = None,
         *details: object,
-        error: Optional[str] = None,
+        error: str | None = None,
     ) -> None:
         fields = [str(line_number)]
         if api is not None:

@@ -1,17 +1,15 @@
-import PyQt6.QtWidgets as QtWidgets
-import PyQt6.QtGui as QtGui
-import PyQt6.QtCore as QtCore
-
-from utils.enums import Direction
+from PyQt6 import QtCore, QtGui, QtWidgets
 
 from sprite_manager import SpriteManager
+from utils.enums import Direction
 
 dir_to_arrow = {
     Direction.NORTH: "^",
     Direction.EAST: ">",
     Direction.SOUTH: "v",
-    Direction.WEST: "<"
+    Direction.WEST: "<",
 }
+
 
 class MapViewer(QtWidgets.QGraphicsView):
     def __init__(self, parent=None):
@@ -19,7 +17,9 @@ class MapViewer(QtWidgets.QGraphicsView):
         self.setRenderHint(QtGui.QPainter.RenderHint.Antialiasing)
         self.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        self.setTransformationAnchor(QtWidgets.QGraphicsView.ViewportAnchor.AnchorUnderMouse)
+        self.setTransformationAnchor(
+            QtWidgets.QGraphicsView.ViewportAnchor.AnchorUnderMouse
+        )
         self.setResizeAnchor(QtWidgets.QGraphicsView.ViewportAnchor.AnchorUnderMouse)
         # enable built-in hand-drag mode for smoother panning
         self.setDragMode(QtWidgets.QGraphicsView.DragMode.ScrollHandDrag)
@@ -44,16 +44,26 @@ class MapViewer(QtWidgets.QGraphicsView):
         self._scene: QtWidgets.QGraphicsScene = QtWidgets.QGraphicsScene(self)
         self.setScene(self._scene)
 
-    def load_map(self, map: list[list[str]], w: int, h: int, robot_x: int, robot_y: int, robot_face: Direction):
-        self._map_data = [row[:] for row in map]
+    def load_map(
+        self,
+        map: list[list[str]],
+        w: int,
+        h: int,
+        robot_x: int,
+        robot_y: int,
+        robot_face: Direction,
+    ):
+        self._map_data = map
         self._robot_x = robot_x
         self._robot_y = robot_y
         self._robot_face = robot_face
         self._map_width = w
         self._map_height = h
 
-        self._scene_item_matrix = [[None for _ in range(self._map_width)] for _ in range(self._map_height)]
-        
+        self._scene_item_matrix = [
+            [None for _ in range(self._map_width)] for _ in range(self._map_width)
+        ]
+
         self._render_map()
 
         ##render robot
@@ -62,7 +72,7 @@ class MapViewer(QtWidgets.QGraphicsView):
         self._robot_item.setScale(self.tile_size / robot_sprite.width())
         self._robot_item.setPos(
             (self._robot_x - self._robot_y) * self.tile_size / 2,
-            (self._robot_x + self._robot_y) * self.tile_size / 4 - self.tile_size / 2
+            (self._robot_x + self._robot_y) * self.tile_size / 4 - self.tile_size / 2,
         )
         self._scene.addItem(self._robot_item)
 
@@ -83,12 +93,16 @@ class MapViewer(QtWidgets.QGraphicsView):
                     )
                     self._scene.addItem(item)
 
-
         for y in range(self._map_height):
             start_x = -y * self.tile_size / 2
             start_y = y * self.tile_size / 4
             for x in range(self._map_width):
-                if self._map_data[y][x] != "." and self._map_data[y][x] not in [">", "<", "^", "v"]:
+                if self._map_data[y][x] != "." and self._map_data[y][x] not in [
+                    ">",
+                    "<",
+                    "^",
+                    "v",
+                ]:
                     sprite = self.sprite_manager.get_sprite(self._map_data[y][x])
                     if sprite:
                         item = QtWidgets.QGraphicsPixmapItem(sprite)
@@ -101,7 +115,7 @@ class MapViewer(QtWidgets.QGraphicsView):
                         self._scene_item_matrix[y][x] = item
                         self._scene.addItem(item)
 
-    def remove_item(self, x: int, y:int):
+    def remove_item(self, x: int, y: int):
         self._scene.removeItem(self._scene_item_matrix[y][x])
         self._scene_item_matrix[y][x] = None
 

@@ -1,5 +1,7 @@
-from utils.resource_path import resource_path
 from PyQt6 import QtGui
+
+from utils.resource_path import resource_path
+
 
 class SpriteManager:
     """Manages loading and providing access to sprites for the map view."""
@@ -14,7 +16,7 @@ class SpriteManager:
             ">": QtGui.QPixmap(resource_path("assets/sprites/robot_dr.png")),
             "v": QtGui.QPixmap(resource_path("assets/sprites/robot_dl.png")),
             "^": QtGui.QPixmap(resource_path("assets/sprites/robot_ur.png")),
-            "<": QtGui.QPixmap(resource_path("assets/sprites/robot_ul.png"))
+            "<": QtGui.QPixmap(resource_path("assets/sprites/robot_ul.png")),
         }
 
         for name, pixmap in self.sprites.items():

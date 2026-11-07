@@ -1,13 +1,10 @@
-# !!! THIS IS ONLY FOR TESTING! THIS WON'T BE CLEANED UP NOR WILL IT BE USED IN THE SOLUTION.
 from dataclasses import dataclass, field
 
 from .errors import RuntimeErrorCode
 
 
 @dataclass
-class DummyRobot:  # !!! DO NOT USE THIS CLASS IN YOUR SOLUTION. IT IS ONLY FOR TESTING PURPOSES.
-    """Small map-backed robot for testing purposes."""
-
+class Robot:
     grid: list[list[str]]
     row: int
     column: int
@@ -19,7 +16,7 @@ class DummyRobot:  # !!! DO NOT USE THIS CLASS IN YOUR SOLUTION. IT IS ONLY FOR 
     DIRECTIONS = {"^": (-1, 0), ">": (0, 1), "v": (1, 0), "<": (0, -1)}
 
     @classmethod
-    def from_map(cls, grid: list[str]) -> "DummyRobot":
+    def from_map(cls, grid: list[str]) -> Robot:
         copied = [list(row) for row in grid]
         robot: tuple[int, int, str] | None = None
         for row, values in enumerate(copied):
@@ -49,16 +46,25 @@ class DummyRobot:  # !!! DO NOT USE THIS CLASS IN YOUR SOLUTION. IT IS ONLY FOR 
             raise RuntimeErrorCode("E_BAD_ARG")
         for _ in range(distance):
             target = self._front()
-            if not self._in_bounds(*target[:2]) or self.grid[target[0]][target[1]] == "#":
+            if (
+                not self._in_bounds(*target[:2])
+                or self.grid[target[0]][target[1]] == "#"
+            ):
                 raise RuntimeErrorCode("E_BEDROCK_HIT")
             self.row, self.column = target[:2]
             self.discovered.add((self.row, self.column))
 
     def turn_by(self, quarter_turns: int) -> None:
-        if not isinstance(quarter_turns, int) or isinstance(quarter_turns, bool) or quarter_turns < 0:
+        if (
+            not isinstance(quarter_turns, int)
+            or isinstance(quarter_turns, bool)
+            or quarter_turns < 0
+        ):
             raise RuntimeErrorCode("E_BAD_ARG")
         directions = "^>v<"
-        self.direction = directions[(directions.index(self.direction) - quarter_turns) % 4]
+        self.direction = directions[
+            (directions.index(self.direction) - quarter_turns) % 4
+        ]
 
     def mine_here(self) -> None:
         if self.grid[self.row][self.column] != "@":

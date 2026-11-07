@@ -1,14 +1,23 @@
 from PyQt6 import QtCore, QtGui, QtWidgets
 
 from blockly_editor import BlocklyEditor
-from interpreter import DummyRobot, Interpreter
+from interpreter import Interpreter, Robot
 
 
 class BlocklyPanel(QtWidgets.QWidget):
     codeChanged = QtCore.pyqtSignal(str)
     robotStateChanged = QtCore.pyqtSignal(object)
 
-    def __init__(self, map_data: list[list[str]], source: str = "", parent=None) -> None:
+    def update_ide(self):
+        self.ide_api({})
+
+    def __init__(
+        self,
+        map_data: list[list[str]],
+        source: str = "",
+        api: callable[object] = lambda: None,
+        parent=None,
+    ) -> None:
         super().__init__(parent)
         self.map_data = map_data
         self.code = source
@@ -116,6 +125,7 @@ class BlocklyPanel(QtWidgets.QWidget):
     def _execute(self, debug: bool) -> None:
         self._execution_timer.stop()
         try:
+<<<<<<< HEAD
             robot = DummyRobot.from_map(["".join(row) for row in self.map_data])
             initial_state = {
                 "row": robot.row,
@@ -123,6 +133,9 @@ class BlocklyPanel(QtWidgets.QWidget):
                 "facing": robot.direction,
                 "mined_at": [],
             }
+=======
+            robot = Robot.from_map(["".join(row) for row in self.map_data])
+>>>>>>> 567d290ce510732ddb1e3f3059929c7c147dd3de
             interpreter = Interpreter(robot)
             log = interpreter.run(self.code)
         except ValueError as error:
@@ -182,10 +195,13 @@ class BlocklyPanel(QtWidgets.QWidget):
 
     def _render_debug_state(self) -> None:
         snapshot = self.debug_snapshots[self.debug_index]
-        variables = "\n".join(
-            f"  {name} = {value}"
-            for name, value in sorted(snapshot.variables.items())
-        ) or "  (none)"
+        variables = (
+            "\n".join(
+                f"  {name} = {value}"
+                for name, value in sorted(snapshot.variables.items())
+            )
+            or "  (none)"
+        )
         self.debug_view.setPlainText(
             f"Step {self.debug_index + 1} of {len(self.debug_snapshots)}\n"
             f"Source line: {snapshot.line_number}\n\n"
