@@ -1,4 +1,4 @@
-import os
+from utils.resource_path import resource_path
 from PyQt6 import QtGui
 
 class SpriteManager:
@@ -7,15 +7,11 @@ class SpriteManager:
     def __init__(self):
         super().__init__()
 
-        base_dir = os.path.dirname(os.path.abspath(__file__))
-        print(base_dir)
-
         self.sprites = {
-            ".": QtGui.QPixmap(os.path.join(base_dir, "assets/sprites/ground.png")),
-            "#": QtGui.QPixmap(os.path.join(base_dir, "assets/sprites/rock.png")),
-            "@": QtGui.QPixmap(os.path.join(base_dir, "assets/sprites/gold.png")),
-            "ROVER": QtGui.QPixmap(os.path.join(base_dir, "assets/sprites/rover.png")),
-            "PATHICON": QtGui.QPixmap(os.path.join(base_dir, "assets/sprites/path_icon.png"))
+            ".": QtGui.QPixmap(resource_path("assets/sprites/ground.png")),
+            "#": QtGui.QPixmap(resource_path("assets/sprites/rock.png")),
+            "@": QtGui.QPixmap(resource_path("assets/sprites/gold.png")),
+            "ROVER": QtGui.QPixmap(resource_path("assets/sprites/robot.png"))
         }
 
         for name, pixmap in self.sprites.items():

@@ -3,13 +3,15 @@ def read_input(file_path: str):
         first_line = fs.readline()
         [h, w] = map(int, first_line.split())
 
-        map_data = [['' for _ in range(w)]]*h
+        map_data = [['' for _ in range(w)] for _ in range(h)]
 
         for y in range(h):
             line = fs.readline().removesuffix("\n")
+            print(line)
             for x in range(w):
-                map_data[y][x] = line[x]
+                map_data[y][x] = str(line[x])
 
+        print(map_data)
         code = ""
         line = fs.readline()
         while line:
