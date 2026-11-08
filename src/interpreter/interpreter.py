@@ -204,12 +204,15 @@ class Interpreter:
         Raises:
             RuntimeErrorCode: E_TYPE_MISMATCH if the variable already exists and the new value's type does not match the existing type.
         """
+        log_length = len(self.log.lines)
         value = self._evaluate_calculated(command.tokens[3:])
         if command.tokens[1] in self.variables and type(
             self.variables[command.tokens[1]]
         ) is not type(value):
             raise RuntimeErrorCode("E_TYPE_MISMATCH")
         self.variables[command.tokens[1]] = value
+        if len(self.log.lines) == log_length:
+            self.log.record(command.line)
 
     def _condition(self, command: _Command) -> None:
         """Evaluates a condition for an 'if' command and executes the appropriate block of commands based on the result."""
