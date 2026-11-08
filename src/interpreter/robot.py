@@ -37,6 +37,7 @@ class Robot:
         target = self._front()
         if not self._in_bounds(*target[:2]) or self.grid[target[0]][target[1]] == "#":
             return kind == 1
+        self.discovered.add((target[0], target[1]))
         return (kind == 2 and self.grid[target[0]][target[1]] == "@") or (
             kind == 0 and self.grid[target[0]][target[1]] == "."
         )

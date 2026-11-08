@@ -62,6 +62,9 @@ class MapViewer(QtWidgets.QGraphicsView):
         self._scene_item_matrix: (
             list[list[QtWidgets.QGraphicsPixmapItem | None]] | None
         ) = None
+        self._undiscovered_blockers: (
+            list[list[QtWidgets.QGraphicsPixmapItem | None]] | None
+        ) = None
 
         self._scene: QtWidgets.QGraphicsScene = QtWidgets.QGraphicsScene(self)
         self.setScene(self._scene)
@@ -87,11 +90,14 @@ class MapViewer(QtWidgets.QGraphicsView):
         self._scene_item_matrix = [
             [None for _ in range(self._map_width)] for _ in range(self._map_width)
         ]
+        self._undiscovered_blockers = [
+            [None for _ in range(self._map_width)] for _ in range(self._map_width)
+        ]
 
         self._render_map()
 
         ##render robot
-        
+
         self._scene.addItem(self._robot_item)
         self.change_robot_direction(self._robot_face)
         self.move_robot(self._robot_x, self._robot_y)
@@ -103,34 +109,55 @@ class MapViewer(QtWidgets.QGraphicsView):
                 for item in xyz:
                     if item is not None:
                         self._scene.removeItem(item)
-        self._add_items()
+        if self._undiscovered_blockers:
+            for xyz in self._undiscovered_blockers:
+                for item in xyz:
+                    if item is not None:
+                        self._scene.removeItem(item)
+        self._add_blockers()
 
-    def _add_items(self):
+    def _discover_cell(self, x: int, y: int):
+        if self._undiscovered_blockers[y][x] != None:
+            self._scene.removeItem(self._undiscovered_blockers[y][x])
+            self._undiscovered_blockers[y][x] = None
+
+        if self._map_data[y][x] != None:
+            if self._scene_item_matrix[y][x] or self._map_data[y][x] == ".":
+                return
+            sprite = self.sprite_manager.get_sprite(self._map_data[y][x])
+            if sprite:
+                item = QtWidgets.QGraphicsPixmapItem(sprite)
+                item.setScale(self.tile_size / sprite.width())
+                item.setPos(
+                    (x - y) * self.tile_size / 2,
+                    (x + y) * self.tile_size / 4 - self.tile_size / 2
+                )
+                item.setZValue(y+1/4)
+                assert self._scene_item_matrix
+
+                self._scene_item_matrix[y][x] = item
+                self._scene.addItem(item)
+
+    def _add_blockers(self):
+        
+        blocker_sprite = self.sprite_manager.get_sprite("_")
         for y in range(self._map_height):
             start_x = -y * self.tile_size / 2
             start_y = y * self.tile_size / 4
             assert self._map_data
 
             for x in range(self._map_width):
-                if self._map_data[y][x] != "." and self._map_data[y][x] not in [
-                    ">",
-                    "<",
-                    "^",
-                    "v",
-                ]:
-                    sprite = self.sprite_manager.get_sprite(self._map_data[y][x])
-                    if sprite:
-                        item = QtWidgets.QGraphicsPixmapItem(sprite)
-                        item.setScale(self.tile_size / sprite.width())
-                        item.setPos(
-                            start_x + x * self.tile_size / 2,
-                            start_y + x * self.tile_size / 4 - self.tile_size / 2,
-                        )
-                        item.setZValue(y)
-                        assert self._scene_item_matrix
+                blocker = QtWidgets.QGraphicsPixmapItem(blocker_sprite)
+                blocker.setScale(self.tile_size / blocker_sprite.width())
+                blocker.setPos(
+                    start_x + x * self.tile_size / 2,
+                    start_y + x * self.tile_size / 4 - self.tile_size / 2,
+                )
+                blocker.setZValue(y+1/8)
+                self._undiscovered_blockers[y][x] = blocker
+                self._scene.addItem(blocker)
 
-                        self._scene_item_matrix[y][x] = item
-                        self._scene.addItem(item)
+
 
     def _render_map(self):
         self._scene.clear()
@@ -149,7 +176,7 @@ class MapViewer(QtWidgets.QGraphicsView):
                     )
                     self._scene.addItem(item)
 
-        self._add_items()
+        self._add_blockers()
 
     def remove_item(self, x: int, y: int):
         assert self._scene_item_matrix
@@ -159,7 +186,7 @@ class MapViewer(QtWidgets.QGraphicsView):
     def move_robot(self, x: int, y: int):
         point_x = (x - y) * self.tile_size / 2
         point_y = (x + y) * self.tile_size / 4 - self.tile_size / 2
-        self._robot_item.setZValue(y)
+        self._robot_item.setZValue(y+1/2)
         self._robot_item.setPos(point_x, point_y)
 
     def change_robot_direction(self, dir: Direction):
@@ -173,6 +200,7 @@ class MapViewer(QtWidgets.QGraphicsView):
         column = state.get("column")
         facing = state.get("facing")
         mined_at = state.get("mined_at", ())
+        discovered = state.get("discovered", ())
         if not isinstance(row, int) or not isinstance(column, int):
             return
         directions = {
@@ -190,6 +218,9 @@ class MapViewer(QtWidgets.QGraphicsView):
         self.move_robot(column, row)
         self.change_robot_direction(direction)
         assert self._scene_item_matrix
+
+        for discovered_row, discovered_column in discovered:
+            self._discover_cell(discovered_column, discovered_row)
 
         for mined_row, mined_column in mined_at:
             if (

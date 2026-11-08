@@ -116,6 +116,7 @@ class Interpreter:
                 (self.robot.row, self.robot.column),
                 self.robot.direction,
                 self.robot.mined_positions,
+                self.robot.discovered
             )
         )
         self.entry_log_indices.append(len(self.log.lines))
@@ -138,6 +139,7 @@ class Interpreter:
                 (self.robot.row, self.robot.column),
                 self.robot.direction,
                 self.robot.mined_positions,
+                self.robot.discovered
             )
         )
 
