@@ -8,6 +8,7 @@ from blockly_panel import BlocklyPanel
 from interpreter import Robot
 from map_viewer import MapViewer
 from read_input import read_input
+from settings_window import SettingsWindow
 from utils.enums import Direction
 from utils.resource_path import resource_path
 
@@ -26,6 +27,7 @@ class Ide:
         self.win = QtWidgets.QMainWindow()
         self.win.setWindowTitle("Arany Bánya MineScript IDE")
         self.win.setWindowIcon(QtGui.QIcon(resource_path("assets/icon.png")))
+        self.settings_window = SettingsWindow()
         menu_bar: QtWidgets.QMenuBar = self.win.menuBar()  # ty: ignore[invalid-assignment]
 
         file_menu: QtWidgets.QMenu = menu_bar.addMenu("File")  # ty: ignore[invalid-assignment]
@@ -33,23 +35,18 @@ class Ide:
 
         open_action = QtGui.QAction("Open")
         close_action = QtGui.QAction("Close")
-        undo_action = QtGui.QAction("Undo")
-        redo_action = QtGui.QAction("Redo")
         preferences_action = QtGui.QAction("Preferences")
 
         open_action.setShortcut(QtGui.QKeySequence("Ctrl+o"))
         close_action.setShortcut(QtGui.QKeySequence("Ctrl+q"))
-        undo_action.setShortcut(QtGui.QKeySequence("Ctrl+z"))
-        redo_action.setShortcut(QtGui.QKeySequence("Ctrl+y"))
         preferences_action.setShortcut(QtGui.QKeySequence("Ctrl+."))
 
         file_menu.addAction(open_action)
         file_menu.addAction(close_action)
-        edit_menu.addAction(undo_action)
-        edit_menu.addAction(redo_action)
         edit_menu.addAction(preferences_action)
 
         close_action.triggered.connect(self.win.close)
+        preferences_action.triggered.connect(lambda: self.settings_window.show())
 
         blockly_panel = BlocklyPanel(map, code)
         if output_path is not None:
