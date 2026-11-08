@@ -134,6 +134,15 @@ def test_if_else_executes_only_the_selected_branch(run_program):
     assert lines == ("1", "3", "4 print 2", "EOR")
 
 
+def test_if_with_empty_true_body_can_execute_else(run_program):
+    _, lines = run_program(
+        [">.."],
+        "if false\nelse\n  print 1",
+    )
+
+    assert lines == ("1", "2", "3 print 1", "EOR")
+
+
 def test_robot_moves_turns_and_mines(run_program):
     robot, lines = run_program(
         [">@."],
