@@ -33,15 +33,19 @@ class MapViewer(QtWidgets.QGraphicsView):
         self._robot_x = 0
         self._robot_y = 0
         self._robot_face: Direction = Direction.NORTH
-        self._robot_item: QtWidgets.QGraphicsPixmapItem | None = None
+        robot_sprite = self.sprite_manager.get_sprite(dir_to_arrow[self._robot_face])
+        self._robot_item = QtWidgets.QGraphicsPixmapItem(robot_sprite)
+        self._robot_item.setScale(self.tile_size / robot_sprite.width())
 
-        self._map_data: list[list[str, str]] = None
+        self._map_data: list[list[str]] | None = None
         self._map_width = 0
         self._map_height = 0
 
         self.clicked = False
 
-        self._scene_item_matrix: list[list[QtWidgets.QGraphicsPixmapItem]] | None = None
+        self._scene_item_matrix: (
+            list[list[QtWidgets.QGraphicsPixmapItem | None]] | None
+        ) = None
 
         self._scene: QtWidgets.QGraphicsScene = QtWidgets.QGraphicsScene(self)
         self.setScene(self._scene)
@@ -71,9 +75,7 @@ class MapViewer(QtWidgets.QGraphicsView):
         self._render_map()
 
         ##render robot
-        robot_sprite = self.sprite_manager.get_sprite(dir_to_arrow[self._robot_face])
-        self._robot_item = QtWidgets.QGraphicsPixmapItem(robot_sprite)
-        self._robot_item.setScale(self.tile_size / robot_sprite.width())
+
         self._robot_item.setPos(
             (self._robot_x - self._robot_y) * self.tile_size / 2,
             (self._robot_x + self._robot_y) * self.tile_size / 4 - self.tile_size / 2,
@@ -83,16 +85,19 @@ class MapViewer(QtWidgets.QGraphicsView):
 
     def reset_map(self):
         self._map_data = deepcopy(self._initial_map)
-        for xyz in self._scene_item_matrix:
-            for item in xyz:
-                if item is not None:
-                    self._scene.removeItem(item)
+        if self._scene_item_matrix:
+            for xyz in self._scene_item_matrix:
+                for item in xyz:
+                    if item is not None:
+                        self._scene.removeItem(item)
         self._add_items()
 
     def _add_items(self):
         for y in range(self._map_height):
             start_x = -y * self.tile_size / 2
             start_y = y * self.tile_size / 4
+            assert self._map_data
+
             for x in range(self._map_width):
                 if self._map_data[y][x] != "." and self._map_data[y][x] not in [
                     ">",
@@ -109,6 +114,8 @@ class MapViewer(QtWidgets.QGraphicsView):
                             start_y + x * self.tile_size / 4 - self.tile_size / 2,
                         )
                         item.setZValue(y)
+                        assert self._scene_item_matrix
+
                         self._scene_item_matrix[y][x] = item
                         self._scene.addItem(item)
 
@@ -132,6 +139,7 @@ class MapViewer(QtWidgets.QGraphicsView):
         self._add_items()
 
     def remove_item(self, x: int, y: int):
+        assert self._scene_item_matrix
         self._scene.removeItem(self._scene_item_matrix[y][x])
         self._scene_item_matrix[y][x] = None
 
@@ -168,6 +176,8 @@ class MapViewer(QtWidgets.QGraphicsView):
         self._robot_face = direction
         self.move_robot(column, row)
         self.change_robot_direction(direction)
+        assert self._scene_item_matrix
+
         for mined_row, mined_column in mined_at:
             if (
                 0 <= mined_row < self._map_height
