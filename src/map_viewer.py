@@ -59,8 +59,8 @@ class MapViewer(QtWidgets.QGraphicsView):
 
         self.clicked = False
 
-        self._scene_item_matrix: list[list[QtWidgets.QGraphicsPixmapItem]] = None  # ty: ignore[invalid-assignment]
-        self._undiscovered_blockers: list[list[QtWidgets.QGraphicsPixmapItem]] = None  # ty: ignore[invalid-assignment]
+        self._scene_item_matrix: list[list[QtWidgets.QGraphicsPixmapItem | None]] | None = None  # ty: ignore[invalid-assignment]
+        self._undiscovered_blockers: list[list[QtWidgets.QGraphicsPixmapItem | None]] | None = None  # ty: ignore[invalid-assignment]
 
         self._scene: QtWidgets.QGraphicsScene = QtWidgets.QGraphicsScene(self)
         self.setScene(self._scene)
@@ -84,10 +84,10 @@ class MapViewer(QtWidgets.QGraphicsView):
         self._map_height = h
 
         self._scene_item_matrix = [  # ty: ignore[invalid-assignment]
-            [None for _ in range(self._map_width)] for _ in range(self._map_width)
+            [None for _ in range(self._map_width)] for _ in range(self._map_height)
         ]
         self._undiscovered_blockers = [  # ty: ignore[invalid-assignment]
-            [None for _ in range(self._map_width)] for _ in range(self._map_width)
+            [None for _ in range(self._map_width)] for _ in range(self._map_height)
         ]
 
         self._render_map()
@@ -111,6 +111,27 @@ class MapViewer(QtWidgets.QGraphicsView):
                     if item is not None:
                         self._scene.removeItem(item)
         self._add_blockers()
+
+    def _undiscover_cell(self, x: int, y: int):
+        if self._scene_item_matrix[y][x] != None:
+            self._scene.removeItem(self._scene_item_matrix[y][x])
+            self._scene_item_matrix[y][x] = None  # ty: ignore[invalid-assignment]
+
+        if self._undiscovered_blockers[y][x] != None:
+            return
+
+        blocker_sprite = self.sprite_manager.get_sprite("_")
+        blocker = QtWidgets.QGraphicsPixmapItem(blocker_sprite)
+        blocker.setScale(self.tile_size / blocker_sprite.width())
+        blocker.setPos(
+            (x - y) * self.tile_size / 2,
+            (x + y) * self.tile_size / 4 - self.tile_size / 2,
+        )
+        blocker.setZValue(y + 1 / 8)
+
+        self._undiscovered_blockers[y][x] = blocker
+        self._scene.addItem(blocker)
+
 
     def _discover_cell(self, x: int, y: int):
         if self._undiscovered_blockers[y][x] != None:
@@ -209,8 +230,19 @@ class MapViewer(QtWidgets.QGraphicsView):
         self.move_robot(column, row)
         self.change_robot_direction(direction)
 
+        is_discovered = [[False for _ in range(self._map_width)] for _ in range(self._map_height)]
+
         for discovered_row, discovered_column in discovered:
-            self._discover_cell(discovered_column, discovered_row)
+            is_discovered[discovered_row][discovered_column] = True
+
+        for discovered_row, values in enumerate(self._undiscovered_blockers):
+            for discovered_column, value in enumerate(values):
+                if value == None:
+                    if is_discovered[discovered_row][discovered_column] == False:
+                        self._undiscover_cell(discovered_column, discovered_row)
+                else:
+                    if is_discovered[discovered_row][discovered_column] == True:
+                        self._discover_cell(discovered_column, discovered_row)
 
         for mined_row, mined_column in mined_at:
             if (
