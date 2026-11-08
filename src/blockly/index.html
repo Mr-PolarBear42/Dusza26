@@ -7,12 +7,13 @@
   <script src="qrc:///qtwebchannel/qwebchannel.js"></script>
   <style>
     html, body, #blocklyDiv { height: 100%; margin: 0; overflow: hidden; }
-    #status { background: #202124; color: #e8eaed; font: 13px sans-serif; padding: 5px 10px; }
+    #status { position: fixed; top: 50%; left: 50%; z-index: 10; transform: translate(-50%, -50%); background: #5a1f1f; border: 1px solid #f6703d; border-radius: 6px; box-shadow: 0 4px 12px rgb(0 0 0 / 40%); color: #fff0eb; font: 16px sans-serif; max-width: calc(100% - 40px); padding: 14px 20px; text-align: center; }
     #blocklyDiv { height: calc(100%); }
   </style>
 </head>
 <body>
   <div id="blocklyDiv"></div>
+  <div id="status" hidden></div>
   <xml id="toolbox" style="display:none">
     <category name="Commands" colour="#4C97FF">
       <block type="set"></block><sep gap="8"></sep><block type="step"></block>
@@ -35,6 +36,9 @@
     let pendingSource = "";
     let generatedLine = 0;
     const lineToBlockId = new Map();
+    const MAX_CONTROL_NESTING_DEPTH = 3;
+    let revertingNestingChange = false;
+    let warningTimeout;
 
     function field(block, name, fallback) {
       return block.getFieldValue(name) || fallback;
@@ -162,6 +166,31 @@
     }
     function clearHighlight() {
       workspace.highlightBlock(null);
+    }
+    function showNestingWarning() {
+      const status = document.getElementById("status");
+      status.textContent = "Control blocks can only be nested up to 3 levels deep.";
+      status.hidden = false;
+      clearTimeout(warningTimeout);
+      warningTimeout = setTimeout(() => { status.hidden = true; }, 4000);
+    }
+    function controlNestingDepth(block, parentDepth = 0) {
+      const depth = (block.type === "if" || block.type === "while")
+        ? parentDepth + 1
+        : parentDepth;
+      let maximumDepth = depth;
+      block.inputList.forEach(input => {
+        const child = input.connection?.targetBlock();
+        if (child) maximumDepth = Math.max(maximumDepth, controlNestingDepth(child, depth));
+      });
+      const next = block.getNextBlock();
+      if (next) maximumDepth = Math.max(maximumDepth, controlNestingDepth(next, parentDepth));
+      return maximumDepth;
+    }
+    function exceedsNestingLimit() {
+      return workspace.getTopBlocks(false).some(
+        block => controlNestingDepth(block) > MAX_CONTROL_NESTING_DEPTH
+      );
     }
     function setDarkMode(dark) {
       const theme = Blockly.Theme.defineTheme("qt", {
@@ -347,6 +376,17 @@
       bridge = channel.objects.bridge;
       bridge.ready.connect(source => { pendingSource = source; importSource(source); });
       workspace.addChangeListener(event => {
+        if (
+          !revertingNestingChange &&
+          event.type !== Blockly.Events.UI &&
+          exceedsNestingLimit()
+        ) {
+          revertingNestingChange = true;
+          workspace.undo(false);
+          revertingNestingChange = false;
+          showNestingWarning();
+          return;
+        }
         bridge.update_code(generatedCode());
       });
     });

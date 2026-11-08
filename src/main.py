@@ -62,7 +62,9 @@ def main():
     else:
         map_data, w, h, code = read_input(args.input)
         Ide(map_data, w, h, code)
-
+        #TODO generate output based on the user actions in the IDE, currently it is not implemented
+        #TODO it should be based on the GUI and it should be writen when Execute/Debug is pressed
+        #TODO and the output should be written to the output file specified in the command line arguments.
 
 def generate(input_file: str, output_file: str):
     map_data, _w, _h, code = read_input(input_file)

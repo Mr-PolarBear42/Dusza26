@@ -2,8 +2,6 @@ from PyQt6 import QtCore, QtWebChannel, QtWebEngineWidgets
 
 from utils.resource_path import resource_path
 
-# TODO Limit the depth of the nesting to 3 deep. If the user tries to go deeper, we should show a warning message and prevent the action.
-
 class BlocklyBridge(QtCore.QObject):
     codeChanged = QtCore.pyqtSignal(str)
     ready = QtCore.pyqtSignal(str)
