@@ -1,4 +1,5 @@
 import sys
+from copy import deepcopy
 
 from PyQt6 import QtCore, QtGui, QtWidgets
 
@@ -54,16 +55,14 @@ class Ide:
         main_layout.addWidget(splitter)
         self.win.setCentralWidget(central_widget)
 
-        robot_position = next(
-            (
-                (column, row, Direction("^>v<".index(value)))
-                for row, values in enumerate(map)
-                for column, value in enumerate(values)
-                if value in "^>v<"
-            ),
-            (0, 0, Direction.WEST),
-        )
-        mapWidget.load_map(map, w, h, *robot_position)
+        map_no_robot = deepcopy(map)
+        robot_position = [0, 0, Direction.NORTH]
+        for row, values in enumerate(map_no_robot):
+            for column, value in enumerate(values):
+                if value in "^>v<":
+                    map_no_robot[row][column] = "."
+                    robot_position = [column, row, Direction("^>v<".index(value))]
+        mapWidget.load_map(map_no_robot, w, h, *robot_position)
 
         self.win.showMaximized()
         sys.exit(app.exec())
