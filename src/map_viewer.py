@@ -86,6 +86,12 @@ class MapViewer(QtWidgets.QGraphicsView):
             )
             command_layout.addWidget(button)
         self._command_buttons.raise_()
+        self._status_label = QtWidgets.QLabel(self.viewport())
+        self._status_label.setStyleSheet(
+            "background: rgba(30, 30, 30, 190); color: white; padding: 6px;"
+        )
+        self._status_label.setAlignment(QtCore.Qt.AlignmentFlag.AlignLeft)
+        self._status_label.raise_()
 
     def load_map(
         self,
@@ -113,6 +119,7 @@ class MapViewer(QtWidgets.QGraphicsView):
         ]
 
         self._render_map()
+        self._update_status(())
 
         ##render robot
 
@@ -267,6 +274,10 @@ class MapViewer(QtWidgets.QGraphicsView):
         direction = directions.get(facing)
         if direction is None:
             return
+        if not isinstance(mined_at, (list, tuple)) or not isinstance(
+            discovered, (list, tuple)
+        ):
+            return
         self._robot_x = column
         self._robot_y = row
         self._robot_face = direction
@@ -294,6 +305,38 @@ class MapViewer(QtWidgets.QGraphicsView):
         for mined_row, mined_column in mined_at:
             if self._scene_item_matrix[mined_row][mined_column] is not None:
                 self.remove_item(mined_column, mined_row)
+        self._update_status(mined_at)
+
+    def _update_status(self, mined_at) -> None:
+        sensor = "unknown"
+        if self._map_data is not None:
+            delta = {
+                Direction.NORTH: (-1, 0),
+                Direction.EAST: (0, 1),
+                Direction.SOUTH: (1, 0),
+                Direction.WEST: (0, -1),
+            }[self._robot_face]
+            sensor_row = self._robot_y + delta[0]
+            sensor_column = self._robot_x + delta[1]
+            mined_positions = set(mined_at)
+            if not (
+                0 <= sensor_row < self._map_height
+                and 0 <= sensor_column < self._map_width
+            ):
+                sensor = "wall"
+            elif self._map_data[sensor_row][sensor_column] == "#":
+                sensor = "wall"
+            elif (
+                self._map_data[sensor_row][sensor_column] == "@"
+                and (sensor_row, sensor_column) not in mined_positions
+            ):
+                sensor = "gold"
+            else:
+                sensor = "empty"
+        self._status_label.setText(
+            f"Sensor: {sensor}\nGold mined: {len(mined_at)}"
+        )
+        self._status_label.adjustSize()
         
     # override cursor changes while dragging
     def mousePressEvent(self, event):
@@ -349,3 +392,5 @@ class MapViewer(QtWidgets.QGraphicsView):
             margin,
             self.viewport().height() - self._command_buttons.height() - margin,
         )
+        self._status_label.adjustSize()
+        self._status_label.move(margin, margin)

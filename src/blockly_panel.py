@@ -368,12 +368,17 @@ class BlocklyPanel(QtWidgets.QWidget):
         if self._execution_states:
             self.robotStateChanged.emit(self._execution_states[-1])
         self.log_view.setPlainText("\n".join(self.debug_log_lines))
-        self._reset()
+        self.debugger_buttons.hide()
+        self.start_buttons.show()
+        self.stop_button.hide()
+        self.labelled_speed_slider.hide()
 
     def _emit_next_execution_state(self) -> None:
         if self._execution_state_index >= len(self._execution_states):
             self._execution_timer.stop()
-            self._reset()
+            self.start_buttons.show()
+            self.stop_button.hide()
+            self.labelled_speed_slider.hide()
             return
         self.robotStateChanged.emit(self._execution_states[self._execution_state_index])
         self._execution_state_index += 1

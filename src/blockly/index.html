@@ -44,8 +44,23 @@
       return block.getFieldValue(name) || fallback;
     }
 
+    const KEYWORDS = new Set([
+      "and", "by", "else", "false", "forward", "here", "if", "isthere",
+      "mine", "not", "or", "print", "set", "step", "to", "true", "turn",
+      "while"
+    ]);
+
+    function validateIdentifier(value) {
+      if (!value) return null;
+      if (!/^[A-Za-z][A-Za-z0-9]*$/.test(value) ||
+          KEYWORDS.has(value.toLowerCase())) {
+        return null;
+      }
+      return value;
+    }
+
     Blockly.Blocks.number = { init() {
-      this.appendDummyInput().appendField(new Blockly.FieldNumber(0, 0), "VALUE");
+      this.appendDummyInput().appendField(new Blockly.FieldNumber(0, 0, 100, 1), "VALUE");
       this.setOutput(true, "Number"); this.setColour("#9966FF");
     }};
     Blockly.Blocks.boolean = { init() {
@@ -53,7 +68,9 @@
       this.setOutput(true, "Boolean"); this.setColour("#9966FF");
     }};
     Blockly.Blocks.variable = { init() {
-      this.appendDummyInput().appendField("variable").appendField(new Blockly.FieldTextInput("value"), "NAME");
+      this.appendDummyInput().appendField("variable").appendField(
+        new Blockly.FieldTextInput("value", validateIdentifier), "NAME"
+      );
       this.setOutput(true); this.setColour("#9966FF");
     }};
     Blockly.Blocks.is_there = { init() {
@@ -74,7 +91,8 @@
     }};
     Blockly.Blocks.set = { init() {
       this.appendValueInput("VALUE").appendField("set")
-        .appendField(new Blockly.FieldTextInput("value"), "NAME").appendField("to");
+        .appendField(new Blockly.FieldTextInput("value", validateIdentifier), "NAME")
+        .appendField("to");
       this.setPreviousStatement(true); this.setNextStatement(true); this.setColour("#4C97FF");
     }};
     Blockly.Blocks.step = { init() {
