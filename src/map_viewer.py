@@ -91,13 +91,10 @@ class MapViewer(QtWidgets.QGraphicsView):
         self._render_map()
 
         ##render robot
-
-        self._robot_item.setPos(
-            (self._robot_x - self._robot_y) * self.tile_size / 2,
-            (self._robot_x + self._robot_y) * self.tile_size / 4 - self.tile_size / 2,
-        )
-        self._robot_item.setZValue(self._robot_y)
+        
         self._scene.addItem(self._robot_item)
+        self.change_robot_direction(self._robot_face)
+        self.move_robot(self._robot_x, self._robot_y)
 
     def reset_map(self):
         self._map_data = deepcopy(self._initial_map)

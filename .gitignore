@@ -228,3 +228,4 @@ src/assets/sprites/robot_debug.png
 src/assets/sprites/robot_debug_2.png
 test_cases/*
 out_cases/*
+test.py
