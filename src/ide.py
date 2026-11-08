@@ -1,16 +1,25 @@
 import sys
 from copy import deepcopy
+from pathlib import Path
 
 from PyQt6 import QtCore, QtGui, QtWidgets
 
 from blockly_panel import BlocklyPanel
 from map_viewer import MapViewer
+from interpreter.logging import ExecutionLog
 from utils.enums import Direction
 from utils.resource_path import resource_path
 
 
 class Ide:
-    def __init__(self, map: list[list[str]], w: int, h: int, code: str):
+    def __init__(
+        self,
+        map: list[list[str]],
+        w: int,
+        h: int,
+        code: str,
+        output_path: str | Path | None = None,
+    ):
         app = QtWidgets.QApplication(sys.argv)
 
         self.win = QtWidgets.QMainWindow()
@@ -42,6 +51,10 @@ class Ide:
         close_action.triggered.connect(self.win.close)
 
         blockly_panel = BlocklyPanel(map, code)
+        if output_path is not None:
+            blockly_panel.executionFinished.connect(
+                lambda log: self._write_execution_log(log, output_path)
+            )
         mapWidget = MapViewer()
         blockly_panel.robotStateChanged.connect(mapWidget.update_robot_state)
         blockly_panel.mapResetEvent.connect(mapWidget.reset_map)
@@ -67,3 +80,9 @@ class Ide:
 
         self.win.showMaximized()
         sys.exit(app.exec())
+
+    @staticmethod
+    def _write_execution_log(log: object, output_path: str | Path) -> None:
+        if not isinstance(log, ExecutionLog):
+            raise TypeError("Expected an ExecutionLog")
+        log.write(output_path)

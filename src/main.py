@@ -61,19 +61,13 @@ def main():
 
     else:
         map_data, w, h, code = read_input(args.input)
-        Ide(map_data, w, h, code)
-        #TODO generate output based on the user actions in the IDE, currently it is not implemented
-        #TODO it should be based on the GUI and it should be writen when Execute/Debug is pressed
-        #TODO and the output should be written to the output file specified in the command line arguments.
+        Ide(map_data, w, h, code, args.output)
 
 def generate(input_file: str, output_file: str):
     map_data, _w, _h, code = read_input(input_file)
     robot = Robot.from_map(map_data)
     out = Interpreter(robot).run(code)
-    with open(output_file, "w") as fs:
-        for line in out._lines:
-            fs.write(line)
-            fs.write("\n")
+    out.write(output_file)
 
 
 if __name__ == "__main__":

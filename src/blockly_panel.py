@@ -12,6 +12,7 @@ from utils.resource_path import resource_path
 
 class BlocklyPanel(QtWidgets.QWidget):
     codeChanged = QtCore.pyqtSignal(str)
+    executionFinished = QtCore.pyqtSignal(object)
     robotStateChanged = QtCore.pyqtSignal(object)
     mapResetEvent = QtCore.pyqtSignal()
 
@@ -269,6 +270,7 @@ class BlocklyPanel(QtWidgets.QWidget):
             self._reset()
             return
 
+        self.executionFinished.emit(log)
         self.debug_snapshots = interpreter.entry_snapshots
         self.debug_log_lines = log.lines
         self.debug_log_indices = interpreter.entry_log_indices
