@@ -123,6 +123,11 @@ class MapViewer(QtWidgets.QGraphicsView):
 
         ##render robot
 
+        robot_sprite = self.sprite_manager.get_sprite(
+            dir_to_arrow[self._robot_face]
+        )
+        self._robot_item = QtWidgets.QGraphicsPixmapItem(robot_sprite)
+        self._robot_item.setScale(self.tile_size / robot_sprite.width())
         self._scene.addItem(self._robot_item)
         self.change_robot_direction(self._robot_face)
         self.move_robot(self._robot_x, self._robot_y)

@@ -5,7 +5,9 @@ from pathlib import Path
 from PyQt6 import QtCore, QtGui, QtWidgets
 
 from blockly_panel import BlocklyPanel
+from interpreter import Robot
 from map_viewer import MapViewer
+from read_input import read_input
 from utils.enums import Direction
 from utils.resource_path import resource_path
 
@@ -58,6 +60,9 @@ class Ide:
         blockly_panel.robotStateChanged.connect(mapWidget.update_robot_state)
         blockly_panel.mapResetEvent.connect(mapWidget.reset_map)
         mapWidget.commandRequested.connect(blockly_panel.execute_manual_command)
+        open_action.triggered.connect(
+            lambda: self._open_task(blockly_panel, mapWidget)
+        )
 
         central_widget = QtWidgets.QWidget()
         main_layout = QtWidgets.QHBoxLayout(central_widget)
@@ -79,6 +84,44 @@ class Ide:
 
         self.win.showMaximized()
         sys.exit(app.exec())
+
+    def _open_task(
+        self, blockly_panel: BlocklyPanel, map_widget: MapViewer
+    ) -> None:
+        file_path, _ = QtWidgets.QFileDialog.getOpenFileName(
+            self.win,
+            "Open task",
+            "",
+            "Text files (*.txt)",
+        )
+        if not file_path:
+            return
+
+        if Path(file_path).suffix.lower() != ".txt":
+            self._show_open_error("Only .txt task files can be opened.")
+            return
+
+        try:
+            map_data, width, height, code = read_input(file_path)
+            robot = Robot.from_map(["".join(row) for row in map_data])
+        except (OSError, UnicodeError, ValueError) as error:
+            self._show_open_error(f"The selected file is not a valid task:\n{error}")
+            return
+
+        map_without_robot = deepcopy(map_data)
+        map_without_robot[robot.row][robot.column] = "."
+        map_widget.load_map(
+            map_without_robot,
+            width,
+            height,
+            robot.column,
+            robot.row,
+            Direction("^>v<".index(robot.direction)),
+        )
+        blockly_panel.load_task(map_data, code)
+
+    def _show_open_error(self, message: str) -> None:
+        QtWidgets.QMessageBox.critical(self.win, "Could not open task", message)
 
     @staticmethod
     def _write_execution_log(lines: tuple[str, ...], output_path: str | Path) -> None:

@@ -171,6 +171,13 @@ class BlocklyPanel(QtWidgets.QWidget):
         self.source_view.setPlainText(code)
         self.codeChanged.emit(code)
 
+    def load_task(self, map_data: list[list[str]], source: str) -> None:
+        self.map_data = map_data
+        self.code = source
+        self.source_view.setPlainText(source)
+        self.blockly_editor.reload_source(source)
+        self._reset()
+
     def _reset(self):
         self.debugger_buttons.hide()
         self._hide_debug_panel()
