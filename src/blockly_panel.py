@@ -1,3 +1,4 @@
+import blockly_editor
 from PyQt6 import QtCore, QtGui, QtWidgets
 
 from blockly_editor import BlocklyEditor
@@ -48,7 +49,6 @@ class BlocklyPanel(QtWidgets.QWidget):
             QtGui.QColor("#70b4f1"),
             "Step back",
         )
-        self.previous_button.clicked.connect(lambda: self._select_debug_step(-1))
         self.next_button = IconButton(
             resource_path("assets/icons/debug-step-forward.svg"),
             QtGui.QColor("#70b4f1"),
@@ -71,9 +71,29 @@ class BlocklyPanel(QtWidgets.QWidget):
         )
         self.stop_button.hide()
 
+        self.execution_speed_slider = QtWidgets.QSlider(
+            QtCore.Qt.Orientation.Horizontal
+        )
+
+        self.speed_slider_value_label = QtWidgets.QLabel()
+        self.execution_speed_slider.setRange(5, 100)
+        self.execution_speed_slider.sliderMoved.connect(self._speed_slider_moved)
+        self.execution_speed_slider.setValue(self.execution_speed_slider.maximum())
+        self._speed_slider_moved(self.execution_speed_slider.value())
+
+        self.labelled_speed_slider = QtWidgets.QWidget()
+        labelled_speed_slider_layout = QtWidgets.QHBoxLayout(self.labelled_speed_slider)
+        labelled_speed_slider_layout.setContentsMargins(0, 0, 0, 0)
+        labelled_speed_slider_layout.addWidget(QtWidgets.QLabel("Step interval (ms):"))
+        labelled_speed_slider_layout.addWidget(self.speed_slider_value_label)
+        labelled_speed_slider_layout.addWidget(self.execution_speed_slider)
+        self.labelled_speed_slider.hide()
+
+        self.previous_button.clicked.connect(lambda: self._select_debug_step(-1))
         self.execute_button.clicked.connect(lambda: self._execute(debug=False))
         self.debug_button.clicked.connect(lambda: self._execute(debug=True))
         self.next_button.clicked.connect(lambda: self._select_debug_step(1))
+        self.stop_button.clicked.connect(lambda: self._stop())
 
         self.debugger_buttons = QtWidgets.QWidget()
         debugger_button_layout = QtWidgets.QHBoxLayout(self.debugger_buttons)
@@ -89,6 +109,7 @@ class BlocklyPanel(QtWidgets.QWidget):
         start_buttons_layout.addWidget(self.execute_button)
 
         controls_layout.addStretch()
+        controls_layout.addWidget(self.labelled_speed_slider)
         controls_layout.addWidget(self.debugger_buttons)
         controls_layout.addWidget(self.start_buttons)
         controls_layout.addWidget(self.stop_button)
@@ -107,22 +128,28 @@ class BlocklyPanel(QtWidgets.QWidget):
         self.log_view.setPlaceholderText("Execution logs will appear here.")
 
         self.debug_panel = QtWidgets.QSplitter(QtCore.Qt.Orientation.Horizontal)
-        self.current_line_text = QtWidgets.QPlainTextEdit()
-        self.current_line_text.setReadOnly(True)
-        self.current_line_text.setPlaceholderText("Debugger state will appear here.")
+        program_state_text_group = QtWidgets.QGroupBox("Program State")
+        program_state_text_group_layout = QtWidgets.QVBoxLayout(
+            program_state_text_group
+        )
+        program_state_text_group_layout.setContentsMargins(0, 0, 0, 0)
+
+        self.program_state_text = QtWidgets.QPlainTextEdit()
+        self.program_state_text.setReadOnly(True)
+        self.program_state_text.setPlaceholderText("Debugger state will appear here.")
+        program_state_text_group_layout.addWidget(self.program_state_text)
 
         self.variable_table = QtWidgets.QTableWidget()
         self.variable_table.setColumnCount(3)
         self.variable_table.setHorizontalHeaderLabels(("Name", "Value", "Type"))
 
-        labeled_variable_table = QtWidgets.QWidget()
-        labeled_variable_table_layout = QtWidgets.QVBoxLayout(labeled_variable_table)
+        variable_table_group = QtWidgets.QGroupBox("Variables")
+        labeled_variable_table_layout = QtWidgets.QVBoxLayout(variable_table_group)
         labeled_variable_table_layout.setContentsMargins(0, 0, 0, 0)
-        labeled_variable_table_layout.addWidget(QtWidgets.QLabel("Variables:"))
         labeled_variable_table_layout.addWidget(self.variable_table)
 
-        self.debug_panel.addWidget(self.current_line_text)
-        self.debug_panel.addWidget(labeled_variable_table)
+        self.debug_panel.addWidget(program_state_text_group)
+        self.debug_panel.addWidget(variable_table_group)
 
         self.output_tabs = QtWidgets.QTabWidget()
         self.output_tabs.addTab(self.source_view, "Generated source")
@@ -147,6 +174,11 @@ class BlocklyPanel(QtWidgets.QWidget):
         self._clear_highlight()
         self.start_buttons.show()
         self.stop_button.hide()
+        self.labelled_speed_slider.hide()
+
+    def _speed_slider_moved(self, value: int):
+        self._execution_timer.setInterval(int(value))
+        self.speed_slider_value_label.setText(str(value))
 
     def _execute(self, debug: bool) -> None:
         self._execution_timer.stop()
@@ -160,7 +192,7 @@ class BlocklyPanel(QtWidgets.QWidget):
             log = interpreter.run(self.code)
         except ValueError as error:
             self.log_view.setPlainText(f"Could not execute program: {error}")
-            self.current_line_text.clear()
+            self.program_state_text.clear()
             self.variable_table.setRowCount(0)
             self.debug_snapshots = []
             self.debug_index = -1
@@ -184,7 +216,7 @@ class BlocklyPanel(QtWidgets.QWidget):
         self._clear_highlight()
         if debug:
             self._show_debug_panel()
-            self.current_line_text.clear()
+            self.program_state_text.clear()
             self.variable_table.setRowCount(0)
             self.log_view.clear()
         else:
@@ -192,7 +224,13 @@ class BlocklyPanel(QtWidgets.QWidget):
             if self._execution_states:
                 self._execution_timer.start()
             self._hide_debug_panel()
+            self.labelled_speed_slider.show()
             self.output_tabs.setCurrentWidget(self.log_view)
+
+    def _stop(self):
+        self._execution_timer.stop()
+        self._emit_map_reset()
+        self._reset()
 
     def _select_debug_step(self, delta: int) -> None:
         if not self.debugging or not self.debug_snapshots:
@@ -223,7 +261,7 @@ class BlocklyPanel(QtWidgets.QWidget):
             self.variable_table.setItem(i, 1, QtWidgets.QTableWidgetItem(str(value)))
             self.variable_table.setItem(i, 2, QtWidgets.QTableWidgetItem(type))
 
-        self.current_line_text.setPlainText(
+        self.program_state_text.setPlainText(
             f"Step {self.debug_index + 1} of {len(self.debug_snapshots)}\n"
             f"Source line: {snapshot.line_number}\n"
             f"Robot\n"

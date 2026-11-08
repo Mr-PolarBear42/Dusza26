@@ -4,6 +4,7 @@ from PyQt6 import QtCore, QtGui, QtWidgets
 
 from sprite_manager import SpriteManager
 from utils.enums import Direction
+from utils.resource_path import resource_path
 
 dir_to_arrow = {
     Direction.NORTH: "^",
@@ -26,6 +27,10 @@ class MapViewer(QtWidgets.QGraphicsView):
         # enable built-in hand-drag mode for smoother panning
         self.setDragMode(QtWidgets.QGraphicsView.DragMode.ScrollHandDrag)
         self.setCursor(QtCore.Qt.CursorShape.OpenHandCursor)
+        # needed because qt doesn't update the full screen by default and only moves the existing view and that breaks the windrose rendering when panning
+        self.setViewportUpdateMode(
+            QtWidgets.QGraphicsView.ViewportUpdateMode.FullViewportUpdate
+        )
 
         self.sprite_manager = SpriteManager()
         self.tile_size = 128  # size of each tile in pixels
@@ -33,6 +38,17 @@ class MapViewer(QtWidgets.QGraphicsView):
         self._robot_x = 0
         self._robot_y = 0
         self._robot_face: Direction = Direction.NORTH
+
+        self.windrose_sprite = QtGui.QPixmap(
+            resource_path("assets/sprites/windrose.png")
+        )
+        self.windrose_width = 100
+        self.windrose_height = int(
+            self.windrose_width
+            * self.windrose_sprite.height()
+            / self.windrose_sprite.width()
+        )
+
         robot_sprite = self.sprite_manager.get_sprite(dir_to_arrow[self._robot_face])
         self._robot_item = QtWidgets.QGraphicsPixmapItem(robot_sprite)
         self._robot_item.setScale(self.tile_size / robot_sprite.width())
@@ -204,10 +220,30 @@ class MapViewer(QtWidgets.QGraphicsView):
         angle = event.angleDelta().y()
         if angle == 0:
             return
-        factor = 1.0 + (angle / 480.0)  # 240 corresponds to 15Â° steps; ~1.1 per notch
+        factor = 1.0 + (angle / 480.0)  # 240 corresponds to 15° steps; ~1.1 per notch
         old_transform = self.transform()
         scale_factor = old_transform.m11() * factor
         # clamp between 0.1 and 10x
         if 0.5 < scale_factor < 10:
             self.scale(factor, factor)
         event.accept()
+
+    def paintEvent(self, event: QtGui.QPaintEvent | None):
+        super().paintEvent(event)
+
+        viewport = self.viewport()
+
+        if viewport:
+            painter = QtGui.QPainter(self.viewport())
+            painter.setRenderHint(QtGui.QPainter.RenderHint.SmoothPixmapTransform)
+
+            margin = 10
+
+            target_rect = QtCore.QRect(
+                viewport.width() - self.windrose_width - margin,
+                margin,
+                self.windrose_width,
+                self.windrose_height,
+            )
+
+            painter.drawPixmap(target_rect, self.windrose_sprite)
