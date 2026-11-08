@@ -1,3 +1,5 @@
+from typing import Any
+
 from PyQt6 import QtCore, QtGui, QtWidgets
 
 from blockly_editor import BlocklyEditor
@@ -35,7 +37,7 @@ class BlocklyPanel(QtWidgets.QWidget):
         self._execution_timer.timeout.connect(self._emit_next_execution_state)
         self._execution_states = []
         self._execution_state_index = 0
-        self._current_state: dict[str, object] | None = None
+        self._current_state: dict[str, Any] | None = None
 
         palette = QtWidgets.QApplication.palette()
         dark_mode = palette.window().color().lightness() < 128
@@ -73,15 +75,18 @@ class BlocklyPanel(QtWidgets.QWidget):
         )
         self.stop_button.hide()
 
+        self.min_execution_interval = 5
+        self.max_execution_interval = 100
         self.execution_speed_slider = QtWidgets.QSlider(
             QtCore.Qt.Orientation.Horizontal
         )
+        self.execution_speed_slider.setRange(
+            self.min_execution_interval, self.max_execution_interval
+        )
+        self.execution_speed_slider.sliderMoved.connect(self._speed_slider_moved)
+        self.execution_speed_slider.setValue(self.max_execution_interval)
 
         self.speed_slider_value_label = QtWidgets.QLabel()
-        self.execution_speed_slider.setRange(5, 100)
-        self.execution_speed_slider.setInvertedAppearance(True)
-        self.execution_speed_slider.sliderMoved.connect(self._speed_slider_moved)
-        self.execution_speed_slider.setValue(self.execution_speed_slider.maximum())
         self._speed_slider_moved(self.execution_speed_slider.value())
 
         self.labelled_speed_slider = QtWidgets.QWidget()
@@ -249,7 +254,10 @@ class BlocklyPanel(QtWidgets.QWidget):
             robot.discovered,
         )
 
-    def _speed_slider_moved(self, value: int):
+    def _speed_slider_moved(self, original_value: int):
+        value = (
+            -original_value + self.min_execution_interval + self.max_execution_interval
+        )
         self._execution_timer.setInterval(int(value))
         self.speed_slider_value_label.setText(str(value))
 
