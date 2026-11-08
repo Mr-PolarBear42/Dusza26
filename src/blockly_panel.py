@@ -1,4 +1,3 @@
-import blockly_editor
 from PyQt6 import QtCore, QtGui, QtWidgets
 
 from blockly_editor import BlocklyEditor
@@ -40,8 +39,8 @@ class BlocklyPanel(QtWidgets.QWidget):
         self.blockly_editor = BlocklyEditor(source, dark_mode=dark_mode)
         self.blockly_editor.codeChanged.connect(self._code_changed)
 
-        controls = QtWidgets.QWidget()
-        controls_layout = QtWidgets.QHBoxLayout(controls)
+        self.controls = QtWidgets.QWidget()
+        controls_layout = QtWidgets.QHBoxLayout(self.controls)
         controls_layout.setContentsMargins(0, 0, 0, 0)
 
         self.previous_button = IconButton(
@@ -160,7 +159,7 @@ class BlocklyPanel(QtWidgets.QWidget):
         editor_output_group.addWidget(self.output_tabs)
 
         layout = QtWidgets.QVBoxLayout(self)
-        layout.addWidget(controls)
+        layout.addWidget(self.controls)
         layout.addWidget(editor_output_group)
 
     def _code_changed(self, code: str) -> None:
@@ -175,6 +174,10 @@ class BlocklyPanel(QtWidgets.QWidget):
         self.start_buttons.show()
         self.stop_button.hide()
         self.labelled_speed_slider.hide()
+        robot = Robot.from_map(["".join(row) for row in self.map_data])
+        self._emit_robot_state(
+            robot.row, robot.column, robot.direction, robot.mined_positions
+        )
 
     def _speed_slider_moved(self, value: int):
         self._execution_timer.setInterval(int(value))
