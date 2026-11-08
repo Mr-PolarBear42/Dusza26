@@ -209,13 +209,34 @@ class MapViewer(QtWidgets.QGraphicsView):
                         start_x + x * self.tile_size / 2,
                         start_y + x * self.tile_size / 4,
                     )
+
                     self._scene.addItem(item)
 
         self._add_blockers()
 
     def remove_item(self, x: int, y: int):
         self._scene.removeItem(self._scene_item_matrix[y][x])
-        self._scene_item_matrix[y][x] = None  # ty: ignore[invalid-assignment]
+        self._scene_item_matrix[y][x] = None
+
+    def _reload_cell(self, x: int, y: int):
+        if self._scene_item_matrix[y][x] != None:
+            self.remove_item(x,y)
+
+        if self._map_data[y][x] == ".":
+            return
+        sprite = self.sprite_manager.get_sprite(self._map_data[y][x])
+        
+        if sprite:
+            item = QtWidgets.QGraphicsPixmapItem(sprite)
+            item.setScale(self.tile_size / sprite.width())
+            item.setPos(
+                (x - y) * self.tile_size / 2,
+                (x + y) * self.tile_size / 4 - self.tile_size / 2,
+            )
+            item.setZValue(y + 1/4)
+
+            self._scene_item_matrix[y][x] = item
+            self._scene.addItem(item)
 
     def move_robot(self, x: int, y: int):
         point_x = (x - y) * self.tile_size / 2
@@ -266,14 +287,14 @@ class MapViewer(QtWidgets.QGraphicsView):
                     if is_discovered[discovered_row][discovered_column] == True:
                         self._discover_cell(discovered_column, discovered_row)
 
+        for y in range(self._map_height):
+            for x in range(self._map_width):
+                if is_discovered[y][x]:
+                    self._reload_cell(x, y)
         for mined_row, mined_column in mined_at:
-            if (
-                0 <= mined_row < self._map_height
-                and 0 <= mined_column < self._map_width
-                and self._scene_item_matrix[mined_row][mined_column] is not None
-            ):
+            if self._scene_item_matrix[mined_row][mined_column] is not None:
                 self.remove_item(mined_column, mined_row)
-
+        
     # override cursor changes while dragging
     def mousePressEvent(self, event):
         if not self.clicked:
