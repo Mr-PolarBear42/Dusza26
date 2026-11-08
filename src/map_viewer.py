@@ -2,6 +2,7 @@ from copy import deepcopy
 
 from PyQt6 import QtCore, QtGui, QtWidgets
 
+from icon_button import IconButton
 from sprite_manager import SpriteManager
 from utils.enums import Direction
 from utils.resource_path import resource_path
@@ -15,6 +16,8 @@ dir_to_arrow = {
 
 
 class MapViewer(QtWidgets.QGraphicsView):
+    commandRequested = QtCore.pyqtSignal(str)
+
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setRenderHint(QtGui.QPainter.RenderHint.Antialiasing)
@@ -64,6 +67,25 @@ class MapViewer(QtWidgets.QGraphicsView):
 
         self._scene: QtWidgets.QGraphicsScene = QtWidgets.QGraphicsScene(self)
         self.setScene(self._scene)
+
+        self._command_buttons = QtWidgets.QWidget(self.viewport())
+        command_layout = QtWidgets.QHBoxLayout(self._command_buttons)
+        command_layout.setContentsMargins(0, 0, 0, 0)
+        command_layout.setSpacing(4)
+        for command, label, tooltip in (
+            ("step forward 1", "F", "Step forward by 1"),
+            ("turn by 1", "T", "Turn by 1"),
+            ("mine here", "M", "Mine here"),
+            ("isThere", "?", "Check what is in front"),
+        ):
+            button = IconButton(None, QtGui.QColor("#70b4f1"), tooltip, label)
+            button.clicked.connect(
+                lambda checked=False, command=command: self.commandRequested.emit(
+                    command
+                )
+            )
+            command_layout.addWidget(button)
+        self._command_buttons.raise_()
 
     def load_map(
         self,
@@ -315,3 +337,12 @@ class MapViewer(QtWidgets.QGraphicsView):
             )
 
             painter.drawPixmap(target_rect, self.windrose_sprite)
+
+    def resizeEvent(self, event: QtGui.QResizeEvent):
+        super().resizeEvent(event)
+        margin = 10
+        self._command_buttons.adjustSize()
+        self._command_buttons.move(
+            margin,
+            self.viewport().height() - self._command_buttons.height() - margin,
+        )

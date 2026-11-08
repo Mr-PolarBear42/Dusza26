@@ -12,9 +12,10 @@ class Robot:
     mined: int = 0
     mined_positions: set[tuple[int, int]] = field(default_factory=set)
     discovered: set[tuple[int, int]] = field(default_factory=set)
-
     DIRECTIONS = {"^": (-1, 0), ">": (0, 1), "v": (1, 0), "<": (0, -1)}
-
+    
+    
+    
     @classmethod
     def from_map(cls, grid: list[str]) -> Robot:
         copied = [list(row) for row in grid]
@@ -29,15 +30,18 @@ class Robot:
         if robot is None:
             raise ValueError("map does not contain a robot")
         row, column, direction = robot
-        return cls(copied, row, column, direction)
+        discovered = {(row, column)}
+        return cls(copied, row, column, direction,discovered=discovered)
 
     def is_there(self, kind: int) -> bool:
         if kind not in (0, 1, 2):
             raise RuntimeErrorCode("E_BAD_ARG")
         target = self._front()
-        if not self._in_bounds(*target[:2]) or self.grid[target[0]][target[1]] == "#":
+        if not self._in_bounds(*target[:2]):
             return kind == 1
         self.discovered.add((target[0], target[1]))
+        if self.grid[target[0]][target[1]] == "#":
+            return kind == 1
         return (kind == 2 and self.grid[target[0]][target[1]] == "@") or (
             kind == 0 and self.grid[target[0]][target[1]] == "."
         )

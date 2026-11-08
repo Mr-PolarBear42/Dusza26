@@ -45,6 +45,7 @@ class Ide:
         mapWidget = MapViewer()
         blockly_panel.robotStateChanged.connect(mapWidget.update_robot_state)
         blockly_panel.mapResetEvent.connect(mapWidget.reset_map)
+        mapWidget.commandRequested.connect(blockly_panel.execute_manual_command)
 
         central_widget = QtWidgets.QWidget()
         main_layout = QtWidgets.QHBoxLayout(central_widget)
