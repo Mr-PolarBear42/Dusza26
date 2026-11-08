@@ -72,13 +72,13 @@ class MapViewer(QtWidgets.QGraphicsView):
         command_layout = QtWidgets.QHBoxLayout(self._command_buttons)
         command_layout.setContentsMargins(0, 0, 0, 0)
         command_layout.setSpacing(4)
-        for command, label, tooltip in (
-            ("step forward 1", "F", "Step forward by 1"),
-            ("turn by 1", "T", "Turn by 1"),
-            ("mine here", "M", "Mine here"),
-            ("isThere", "?", "Check what is in front"),
+        for command, icon_path, tooltip in (
+            ("step forward 1", resource_path("assets/icons/forward.svg"), "Step forward by 1"),
+            ("turn by 1", resource_path("assets/icons/rotate-left.svg"), "Turn by 1"),
+            ("mine here", resource_path("assets/icons/pickaxe.svg"), "Mine here"),
+            ("isThere", resource_path("assets/icons/eye.svg"), "Check what is in front"),
         ):
-            button = IconButton(None, QtGui.QColor("#70b4f1"), tooltip, label)
+            button = IconButton(icon_path, QtGui.QColor("#70b4f1"), tooltip)
             button.clicked.connect(
                 lambda checked=False, command=command: self.commandRequested.emit(
                     command
