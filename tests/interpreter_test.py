@@ -39,7 +39,13 @@ def run_program():
 def test_expressions(run_program, expression: str, expected: str):
     _, lines = run_program([">"], f"set result to {expression}\nprint result")
 
-    assert lines == (f"2 print {expected}", "EOR")
+    assert lines == ("1", f"2 print {expected}", "EOR")
+
+
+def test_plain_assignments_are_logged(run_program):
+    _, lines = run_program([">"], "set value to 1\nset flag to true")
+
+    assert lines == ("1", "2", "EOR")
 
 
 @pytest.mark.parametrize(
@@ -71,9 +77,13 @@ def test_special_equalities(run_program):
     )
 
     assert lines_true == (
+        "1",
         "2 print true",
+        "3",
         "4 print true",
+        "5",
         "6 print true",
+        "7",
         "8 print true",
         "EOR",
     )
@@ -84,9 +94,13 @@ def test_special_equalities(run_program):
     )
 
     assert lines_false == (
+        "1",
         "2 print false",
+        "3",
         "4 print false",
+        "5",
         "6 print false",
+        "7",
         "8 print false",
         "EOR",
     )
@@ -152,7 +166,7 @@ def test_type_mismatch_is_reported(run_program):
         "set value to 1\nset value to false\nprint 1",
     )
 
-    assert lines == ("2 E_TYPE_MISMATCH", "EOR")
+    assert lines == ("1", "2 E_TYPE_MISMATCH", "EOR")
 
 
 def test_binary_expression_checks_left_operand_before_reading_right_operand(
@@ -189,7 +203,7 @@ def test_each_run_starts_with_fresh_state():
     first = interpreter.run("set value to 1")
     second = interpreter.run("print value")
 
-    assert first.lines == ("EOR",)
+    assert first.lines == ("1", "EOR")
     assert second.lines == ("1 E_UNINITIALIZED", "EOR")
 
 
@@ -308,5 +322,5 @@ def test_entry_snapshots_record_log_positions():
     interpreter = Interpreter(robot)
     log = interpreter.run("set value to 1\nprint value")
 
-    assert interpreter.entry_log_indices == [0, 0]
-    assert log.lines == ("2 print 1", "EOR")
+    assert interpreter.entry_log_indices == [0, 1]
+    assert log.lines == ("1", "2 print 1", "EOR")
