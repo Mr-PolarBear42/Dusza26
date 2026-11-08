@@ -132,7 +132,7 @@ class MapViewer(QtWidgets.QGraphicsView):
                     (x - y) * self.tile_size / 2,
                     (x + y) * self.tile_size / 4 - self.tile_size / 2
                 )
-                item.setZValue(y)
+                item.setZValue(y+1/4)
                 assert self._scene_item_matrix
 
                 self._scene_item_matrix[y][x] = item
@@ -153,7 +153,7 @@ class MapViewer(QtWidgets.QGraphicsView):
                     start_x + x * self.tile_size / 2,
                     start_y + x * self.tile_size / 4 - self.tile_size / 2,
                 )
-                blocker.setZValue(y+0.1)
+                blocker.setZValue(y+1/8)
                 self._undiscovered_blockers[y][x] = blocker
                 self._scene.addItem(blocker)
 
@@ -186,7 +186,7 @@ class MapViewer(QtWidgets.QGraphicsView):
     def move_robot(self, x: int, y: int):
         point_x = (x - y) * self.tile_size / 2
         point_y = (x + y) * self.tile_size / 4 - self.tile_size / 2
-        self._robot_item.setZValue(y+0.2)
+        self._robot_item.setZValue(y+1/2)
         self._robot_item.setPos(point_x, point_y)
 
     def change_robot_direction(self, dir: Direction):
@@ -219,6 +219,9 @@ class MapViewer(QtWidgets.QGraphicsView):
         self.change_robot_direction(direction)
         assert self._scene_item_matrix
 
+        for discovered_row, discovered_column in discovered:
+            self._discover_cell(discovered_column, discovered_row)
+
         for mined_row, mined_column in mined_at:
             if (
                 0 <= mined_row < self._map_height
@@ -226,9 +229,6 @@ class MapViewer(QtWidgets.QGraphicsView):
                 and self._scene_item_matrix[mined_row][mined_column] is not None
             ):
                 self.remove_item(mined_column, mined_row)
-
-        for discovered_row, discovered_column in discovered:
-            self._discover_cell(discovered_column, discovered_row)
 
     # override cursor changes while dragging
     def mousePressEvent(self, event):
