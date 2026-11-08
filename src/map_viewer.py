@@ -209,6 +209,7 @@ class MapViewer(QtWidgets.QGraphicsView):
                         start_x + x * self.tile_size / 2,
                         start_y + x * self.tile_size / 4,
                     )
+
                     self._scene.addItem(item)
 
         self._add_blockers()
@@ -232,6 +233,8 @@ class MapViewer(QtWidgets.QGraphicsView):
                 (x - y) * self.tile_size / 2,
                 (x + y) * self.tile_size / 4 - self.tile_size / 2,
             )
+            item.setZValue(y + 1/4)
+
             self._scene_item_matrix[y][x] = item
             self._scene.addItem(item)
 
