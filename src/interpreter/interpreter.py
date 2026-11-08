@@ -386,16 +386,16 @@ def _parse(source: str) -> list[_Command]:
                 and lines[index][1] > indent
             ):
                 command.body, index = block(index, lines[index][1])
-                if (
-                    tokens[0] == "if"
-                    and index < len(lines)
-                    and lines[index][1] == indent
-                    and lines[index][2][0] == "else"
-                ):
-                    command.else_line = lines[index][0]
-                    index += 1
-                    if index < len(lines) and lines[index][1] > indent:
-                        command.otherwise, index = block(index, lines[index][1])
+            if (
+                tokens[0] == "if"
+                and index < len(lines)
+                and lines[index][1] == indent
+                and lines[index][2][0] == "else"
+            ):
+                command.else_line = lines[index][0]
+                index += 1
+                if index < len(lines) and lines[index][1] > indent:
+                    command.otherwise, index = block(index, lines[index][1])
             result.append(command)
         return result, index
 

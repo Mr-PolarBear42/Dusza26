@@ -152,7 +152,6 @@
         else if (block.type === "turn") addLine("turn by " + valueCode(block, "VALUE"));
         else if (block.type === "mine") addLine("mine here");
         else if (block.type === "print") addLine("print " + valueCode(block, "VALUE"));
-        else if (block.type === "raw_line") addLine(field(block, "CODE", ""));
         else if (block.type === "while") {
           addLine("while " + valueCode(block, "CONDITION"));
           lines.push(...linesFrom(block.getInputTargetBlock("DO"), indent + 2));
@@ -243,7 +242,13 @@
       const lines = source.split(/\r?\n/)
         .map((text, index) => ({ text, number: index + 1 }))
         .filter(line => line.text.trim());
-      const roots = parseStatements(lines, 0, lines.length, lines[0]?.text.search(/\S/) ?? 0).blocks;
+      const roots = parseStatements(
+        lines,
+        0,
+        lines.length,
+        lines[0]?.text.search(/\S/) ?? 0,
+        false
+      ).blocks;
       connectStatementList(roots);
       workspace.render();
     
@@ -327,7 +332,7 @@
       }
       return null;
     }
-    function parseStatements(lines, start, end, indent) {
+    function parseStatements(lines, start, end, indent, stopAtElse) {
       const blocks = [];
       let index = start;
       while (index < end) {
@@ -339,7 +344,7 @@
           continue;
         }
         const text = line.text.trim();
-        if (text === "else") break;
+        if (text === "else" && stopAtElse) break;
         let block = statementBlock(text);
         if (text.startsWith("if ") || text.startsWith("while ")) {
           const isIf = text.startsWith("if ");
@@ -350,28 +355,28 @@
           index += 1;
           if (index < end && lines[index].text.search(/\S/) > indent) {
             const childIndent = lines[index].text.search(/\S/);
-            const body = parseStatements(lines, index, end, childIndent);
+            const body = parseStatements(lines, index, end, childIndent, true);
             const inputName = isIf ? "THEN" : "DO";
             connectStatementInput(block, inputName, body.blocks);
             index = body.index;
           }
-          if (isIf && index < end && lines[index].text.trim() === "else") {
+          if (
+            isIf &&
+            index < end &&
+            lines[index].text.trim() === "else" &&
+            index + 1 < end &&
+            lines[index + 1].text.search(/\S/) > indent
+          ) {
             index += 1;
-            if (index < end && lines[index].text.search(/\S/) > indent) {
-              const childIndent = lines[index].text.search(/\S/);
-              const otherwise = parseStatements(lines, index, end, childIndent);
-              connectStatementInput(block, "ELSE", otherwise.blocks);
-              index = otherwise.index;
-            }
+            const childIndent = lines[index].text.search(/\S/);
+            const otherwise = parseStatements(lines, index, end, childIndent, true);
+            connectStatementInput(block, "ELSE", otherwise.blocks);
+            index = otherwise.index;
           }
         } else {
           index += 1;
         }
-        if (!block) {
-          block = newBlock("raw_line");
-          block.setFieldValue(text, "CODE");
-        }
-        blocks.push(block);
+        if (block) blocks.push(block);
       }
       return { blocks, index };
     }
