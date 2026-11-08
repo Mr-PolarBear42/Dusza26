@@ -53,18 +53,14 @@ class MapViewer(QtWidgets.QGraphicsView):
         self._robot_item = QtWidgets.QGraphicsPixmapItem(robot_sprite)
         self._robot_item.setScale(self.tile_size / robot_sprite.width())
 
-        self._map_data: list[list[str]] | None = None
+        self._map_data: list[list[str]] = None  # ty: ignore[invalid-assignment]
         self._map_width = 0
         self._map_height = 0
 
         self.clicked = False
 
-        self._scene_item_matrix: (
-            list[list[QtWidgets.QGraphicsPixmapItem | None]] | None
-        ) = None
-        self._undiscovered_blockers: (
-            list[list[QtWidgets.QGraphicsPixmapItem | None]] | None
-        ) = None
+        self._scene_item_matrix: list[list[QtWidgets.QGraphicsPixmapItem]] = None  # ty: ignore[invalid-assignment]
+        self._undiscovered_blockers: list[list[QtWidgets.QGraphicsPixmapItem]] = None  # ty: ignore[invalid-assignment]
 
         self._scene: QtWidgets.QGraphicsScene = QtWidgets.QGraphicsScene(self)
         self.setScene(self._scene)
@@ -87,10 +83,10 @@ class MapViewer(QtWidgets.QGraphicsView):
         self._map_width = w
         self._map_height = h
 
-        self._scene_item_matrix = [
+        self._scene_item_matrix = [  # ty: ignore[invalid-assignment]
             [None for _ in range(self._map_width)] for _ in range(self._map_width)
         ]
-        self._undiscovered_blockers = [
+        self._undiscovered_blockers = [  # ty: ignore[invalid-assignment]
             [None for _ in range(self._map_width)] for _ in range(self._map_width)
         ]
 
@@ -119,7 +115,7 @@ class MapViewer(QtWidgets.QGraphicsView):
     def _discover_cell(self, x: int, y: int):
         if self._undiscovered_blockers[y][x] != None:
             self._scene.removeItem(self._undiscovered_blockers[y][x])
-            self._undiscovered_blockers[y][x] = None
+            self._undiscovered_blockers[y][x] = None  # ty: ignore[invalid-assignment]
 
         if self._map_data[y][x] != None:
             if self._scene_item_matrix[y][x] or self._map_data[y][x] == ".":
@@ -130,21 +126,19 @@ class MapViewer(QtWidgets.QGraphicsView):
                 item.setScale(self.tile_size / sprite.width())
                 item.setPos(
                     (x - y) * self.tile_size / 2,
-                    (x + y) * self.tile_size / 4 - self.tile_size / 2
+                    (x + y) * self.tile_size / 4 - self.tile_size / 2,
                 )
-                item.setZValue(y+1/4)
-                assert self._scene_item_matrix
+                item.setZValue(y + 1 / 4)
 
                 self._scene_item_matrix[y][x] = item
                 self._scene.addItem(item)
 
     def _add_blockers(self):
-        
+
         blocker_sprite = self.sprite_manager.get_sprite("_")
         for y in range(self._map_height):
             start_x = -y * self.tile_size / 2
             start_y = y * self.tile_size / 4
-            assert self._map_data
 
             for x in range(self._map_width):
                 blocker = QtWidgets.QGraphicsPixmapItem(blocker_sprite)
@@ -153,11 +147,9 @@ class MapViewer(QtWidgets.QGraphicsView):
                     start_x + x * self.tile_size / 2,
                     start_y + x * self.tile_size / 4 - self.tile_size / 2,
                 )
-                blocker.setZValue(y+1/8)
+                blocker.setZValue(y + 1 / 8)
                 self._undiscovered_blockers[y][x] = blocker
                 self._scene.addItem(blocker)
-
-
 
     def _render_map(self):
         self._scene.clear()
@@ -179,14 +171,13 @@ class MapViewer(QtWidgets.QGraphicsView):
         self._add_blockers()
 
     def remove_item(self, x: int, y: int):
-        assert self._scene_item_matrix
         self._scene.removeItem(self._scene_item_matrix[y][x])
-        self._scene_item_matrix[y][x] = None
+        self._scene_item_matrix[y][x] = None  # ty: ignore[invalid-assignment]
 
     def move_robot(self, x: int, y: int):
         point_x = (x - y) * self.tile_size / 2
         point_y = (x + y) * self.tile_size / 4 - self.tile_size / 2
-        self._robot_item.setZValue(y+1/2)
+        self._robot_item.setZValue(y + 1 / 2)
         self._robot_item.setPos(point_x, point_y)
 
     def change_robot_direction(self, dir: Direction):
@@ -217,7 +208,6 @@ class MapViewer(QtWidgets.QGraphicsView):
         self._robot_face = direction
         self.move_robot(column, row)
         self.change_robot_direction(direction)
-        assert self._scene_item_matrix
 
         for discovered_row, discovered_column in discovered:
             self._discover_cell(discovered_column, discovered_row)
