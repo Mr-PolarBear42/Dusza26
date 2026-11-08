@@ -154,7 +154,7 @@ class BlocklyPanel(QtWidgets.QWidget):
         try:
             robot = Robot.from_map(["".join(row) for row in self.map_data])
             self._emit_robot_state(
-                robot.row, robot.column, robot.direction, robot.mined_positions
+                robot.row, robot.column, robot.direction, robot.mined_positions, robot.discovered
             )
             interpreter = Interpreter(robot)
             log = interpreter.run(self.code)
@@ -207,6 +207,7 @@ class BlocklyPanel(QtWidgets.QWidget):
             snapshot.robot_position[1],
             snapshot.robot_direction,
             snapshot.mined_positions,
+            snapshot.discovered_positions
         )
         self._select_source_line(snapshot.line_number)
         self._render_debug_state()
@@ -278,6 +279,7 @@ class BlocklyPanel(QtWidgets.QWidget):
             "column": snapshot.robot_position[1],
             "facing": snapshot.robot_direction,
             "mined_at": sorted(snapshot.mined_positions),
+            "discovered": sorted(snapshot.discovered_positions)
         }
 
     def _emit_robot_state(
@@ -286,6 +288,7 @@ class BlocklyPanel(QtWidgets.QWidget):
         column: int,
         direction: str,
         mined_positions: set[tuple[int, int]] | frozenset[tuple[int, int]],
+        discovered_positions: set[tuple[int, int]] | frozenset[tuple[int, int]],
     ) -> None:
         self.robotStateChanged.emit(
             {
@@ -293,6 +296,7 @@ class BlocklyPanel(QtWidgets.QWidget):
                 "column": column,
                 "facing": direction,
                 "mined_at": sorted(mined_positions),
+                "discovered": sorted(discovered_positions),
             }
         )
 

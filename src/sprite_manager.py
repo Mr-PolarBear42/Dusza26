@@ -17,6 +17,7 @@ class SpriteManager:
             "v": QtGui.QPixmap(resource_path("assets/sprites/robot_dl.png")),
             "^": QtGui.QPixmap(resource_path("assets/sprites/robot_ur.png")),
             "<": QtGui.QPixmap(resource_path("assets/sprites/robot_ul.png")),
+            "_": QtGui.QPixmap(resource_path("assets/sprites/undiscovered.png"))
         }
 
         for name, pixmap in self.sprites.items():
