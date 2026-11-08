@@ -2,6 +2,7 @@ from PyQt6 import QtCore, QtWebChannel, QtWebEngineWidgets
 
 from utils.resource_path import resource_path
 
+
 class BlocklyBridge(QtCore.QObject):
     codeChanged = QtCore.pyqtSignal(str)
     ready = QtCore.pyqtSignal(str)

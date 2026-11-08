@@ -1,6 +1,5 @@
 from pathlib import Path
 
-
 _MAP_SYMBOLS = frozenset(".#@^>v<")
 
 
@@ -24,9 +23,7 @@ def read_input(file_path: str | Path):
                 raise ValueError(f"Map row {y + 1} is missing")
             line = line.rstrip("\r\n")
             if len(line) != w:
-                raise ValueError(
-                    f"Map row {y + 1} must contain exactly {w} characters"
-                )
+                raise ValueError(f"Map row {y + 1} must contain exactly {w} characters")
             invalid_symbols = set(line) - _MAP_SYMBOLS
             if invalid_symbols:
                 invalid = ", ".join(sorted(invalid_symbols))

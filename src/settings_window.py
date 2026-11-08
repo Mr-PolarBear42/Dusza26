@@ -1,5 +1,4 @@
-from PyQt6.QtWidgets import QTreeWidgetItem
-from PyQt6 import QtGui, QtWidgets, QtCore
+from PyQt6 import QtCore, QtGui, QtWidgets
 
 
 class SettingsWindow(QtWidgets.QWidget):
