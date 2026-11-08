@@ -16,5 +16,6 @@ class IconButton(QtWidgets.QPushButton):
         icon = QtGui.QIcon(img)
 
         self.setIcon(icon)
-        self.setIconSize(QtCore.QSize(25, 25))
+        self.setIconSize(QtCore.QSize(30, 30))
         self.setToolTip(tooltip)
+        self.setFixedSize(QtCore.QSize(35, 35))
