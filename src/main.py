@@ -52,12 +52,16 @@ def main():
     if args.quiet:
         generate(args.input, args.output)
     elif args.all:
-        files = os.listdir(args.input)
-        os.mkdir(args.output)
-        for file in files:
-            input_file = os.path.join(args.input, file)
-            output_file = os.path.join(args.output, file)
-            generate(input_file, output_file)
+        try:
+            files = os.listdir(args.input)
+            os.mkdir(args.output)
+            for file in files:
+                input_file = os.path.join(args.input, file)
+                output_file = os.path.join(args.output, file)
+                generate(input_file, output_file)
+        except FileExistsError:
+            print(f"A kimeneti könyvtár már létezik: {args.output}")
+        
 
     else:
         map_data, w, h, code = read_input(args.input)
