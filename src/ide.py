@@ -6,7 +6,6 @@ from PyQt6 import QtCore, QtGui, QtWidgets
 
 from blockly_panel import BlocklyPanel
 from map_viewer import MapViewer
-from interpreter.logging import ExecutionLog
 from utils.enums import Direction
 from utils.resource_path import resource_path
 
@@ -52,8 +51,8 @@ class Ide:
 
         blockly_panel = BlocklyPanel(map, code)
         if output_path is not None:
-            blockly_panel.executionFinished.connect(
-                lambda log: self._write_execution_log(log, output_path)
+            blockly_panel.executionProgress.connect(
+                lambda lines: self._write_execution_log(lines, output_path)
             )
         mapWidget = MapViewer()
         blockly_panel.robotStateChanged.connect(mapWidget.update_robot_state)
@@ -82,7 +81,8 @@ class Ide:
         sys.exit(app.exec())
 
     @staticmethod
-    def _write_execution_log(log: object, output_path: str | Path) -> None:
-        if not isinstance(log, ExecutionLog):
-            raise TypeError("Expected an ExecutionLog")
-        log.write(output_path)
+    def _write_execution_log(lines: tuple[str, ...], output_path: str | Path) -> None:
+        content = "\n".join(lines)
+        if lines:
+            content += "\n"
+        Path(output_path).write_text(content, encoding="utf-8")

@@ -12,7 +12,7 @@ from utils.resource_path import resource_path
 
 class BlocklyPanel(QtWidgets.QWidget):
     codeChanged = QtCore.pyqtSignal(str)
-    executionFinished = QtCore.pyqtSignal(object)
+    executionProgress = QtCore.pyqtSignal(tuple)
     robotStateChanged = QtCore.pyqtSignal(object)
     mapResetEvent = QtCore.pyqtSignal()
 
@@ -249,6 +249,7 @@ class BlocklyPanel(QtWidgets.QWidget):
     def _execute(self, debug: bool) -> None:
         self._execution_timer.stop()
         self._emit_map_reset()
+        self._publish_execution_log(())
         try:
             robot = Robot.from_map(["".join(row) for row in self.map_data])
             self._emit_robot_state(
@@ -270,7 +271,6 @@ class BlocklyPanel(QtWidgets.QWidget):
             self._reset()
             return
 
-        self.executionFinished.emit(log)
         self.debug_snapshots = interpreter.entry_snapshots
         self.debug_log_lines = log.lines
         self.debug_log_indices = interpreter.entry_log_indices
@@ -291,9 +291,10 @@ class BlocklyPanel(QtWidgets.QWidget):
             self.variable_table.setRowCount(0)
             self.log_view.clear()
         else:
-            self.log_view.setPlainText("\n".join(log.lines))
             if self._execution_states:
                 self._execution_timer.start()
+            else:
+                self._publish_execution_log(log.lines)
             self._hide_debug_panel()
             self.labelled_speed_slider.show()
             self.output_tabs.setCurrentWidget(self.log_view)
@@ -351,7 +352,7 @@ class BlocklyPanel(QtWidgets.QWidget):
             if self.debug_index + 1 < len(self.debug_log_indices)
             else len(self.debug_log_lines)
         )
-        self.log_view.setPlainText("\n".join(self.debug_log_lines[:end]))
+        self._publish_execution_log(self.debug_log_lines[:end])
 
     def _show_debug_panel(self) -> None:
         if self.output_tabs.indexOf(self.debug_panel) == -1:
@@ -367,7 +368,7 @@ class BlocklyPanel(QtWidgets.QWidget):
         self.debugging = False
         if self._execution_states:
             self.robotStateChanged.emit(self._execution_states[-1])
-        self.log_view.setPlainText("\n".join(self.debug_log_lines))
+        self._publish_execution_log(self.debug_log_lines)
         self.debugger_buttons.hide()
         self.start_buttons.show()
         self.stop_button.hide()
@@ -376,15 +377,27 @@ class BlocklyPanel(QtWidgets.QWidget):
     def _emit_next_execution_state(self) -> None:
         if self._execution_state_index >= len(self._execution_states):
             self._execution_timer.stop()
+            self._publish_execution_log(self.debug_log_lines)
             self.start_buttons.show()
             self.stop_button.hide()
             self.labelled_speed_slider.hide()
             return
         self.robotStateChanged.emit(self._execution_states[self._execution_state_index])
+        next_entry = self._execution_state_index + 1
+        end = (
+            self.debug_log_indices[next_entry]
+            if next_entry < len(self.debug_log_indices)
+            else len(self.debug_log_lines)
+        )
+        self._publish_execution_log(self.debug_log_lines[:end])
         self._execution_state_index += 1
 
     def _emit_map_reset(self) -> None:
         self.mapResetEvent.emit()
+
+    def _publish_execution_log(self, lines: tuple[str, ...]) -> None:
+        self.log_view.setPlainText("\n".join(lines))
+        self.executionProgress.emit(lines)
 
     @staticmethod
     def _state_from_snapshot(snapshot: StateSnapshot) -> dict:
