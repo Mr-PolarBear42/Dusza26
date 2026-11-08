@@ -24,7 +24,9 @@ class BlocklyEditor(QtWebEngineWidgets.QWebEngineView):
         self._bridge = BlocklyBridge()
         self._bridge.codeChanged.connect(self.codeChanged)
         self._bridge.codeChanged.connect(self._set_current_source)
-        self.page().setWebChannel(self._channel())
+        page = self.page()
+        if page:
+            page.setWebChannel(self._channel())
         self.loadFinished.connect(self._on_load_finished)
         self.setMinimumWidth(520)
         self._dark_mode = dark_mode
@@ -48,16 +50,21 @@ class BlocklyEditor(QtWebEngineWidgets.QWebEngineView):
             self.set_dark_mode(self._dark_mode)
             self._bridge.ready.emit(self._source)
 
+    def _run_javascript_on_page(self, javascript_code: str):
+        page = self.page()
+        assert page
+        page.runJavaScript(javascript_code)
+
     def reload_source(self, source: str) -> None:
         self._source = source
         self._bridge.ready.emit(source)
 
     def highlight_line(self, line_number: int) -> None:
-        self.page().runJavaScript(f"highlightLine({int(line_number)})")
+        self._run_javascript_on_page(f"highlightLine({int(line_number)})")
 
     def clear_highlight(self) -> None:
-        self.page().runJavaScript("clearHighlight()")
+        self._run_javascript_on_page("clearHighlight()")
 
     def set_dark_mode(self, dark_mode: bool) -> None:
         self._dark_mode = dark_mode
-        self.page().runJavaScript(f"setDarkMode({str(dark_mode).lower()})")
+        self._run_javascript_on_page(f"setDarkMode({str(dark_mode).lower()})")

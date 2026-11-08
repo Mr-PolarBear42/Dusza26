@@ -2,7 +2,7 @@ from PyQt6 import QtCore, QtGui
 
 
 class MineScriptHighlighter(QtGui.QSyntaxHighlighter):
-    def create_format(foreground_color: QtGui.QColor):
+    def create_format(foreground_color: QtGui.QColor) -> QtGui.QTextCharFormat:
         keyword_format = QtGui.QTextCharFormat()
         keyword_format.setForeground(foreground_color)
         return keyword_format
@@ -45,7 +45,11 @@ class MineScriptHighlighter(QtGui.QSyntaxHighlighter):
                 self.highlighting_rules.append((pattern, style))
 
     def highlightBlock(self, text):
-        self.setFormat(0, self.document().characterCount(), self.variable_style)
+        document = self.document()
+        if not document:
+            return
+
+        self.setFormat(0, document.characterCount(), self.variable_style)
 
         for pattern, format in self.highlighting_rules:
             match_iterator = pattern.globalMatch(text)
@@ -56,24 +60,3 @@ class MineScriptHighlighter(QtGui.QSyntaxHighlighter):
                 start, length = match.capturedStart(), match.capturedLength()
 
                 self.setFormat(start, length, format)
-
-
-# a = 1 + 2 - 3 * 4
-# 3 > a < 8
-# 2 <= a >= 1
-
-# True and not 7 or 1 < 45 + 2
-
-# True, False
-
-# 0, 1, 2, 3, 4, 5, 6, 7, 8, 9
-
-# print()
-# next()
-
-# if True:
-#     pass
-# else:
-#     pass
-# while False:
-#     pass

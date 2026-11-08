@@ -1,10 +1,12 @@
 from PyQt6 import QtCore, QtGui, QtWidgets
 
 from blockly_editor import BlocklyEditor
+from icon_button import IconButton
 from interpreter import Interpreter, Robot
 from interpreter.state_snapshot import StateSnapshot
 from minescript_highlighter import MineScriptHighlighter
 from utils.arrow_to_direction import arrow_to_direction
+from utils.resource_path import resource_path
 
 
 class BlocklyPanel(QtWidgets.QWidget):
@@ -37,34 +39,62 @@ class BlocklyPanel(QtWidgets.QWidget):
         self.blockly_editor = BlocklyEditor(source, dark_mode=dark_mode)
         self.blockly_editor.codeChanged.connect(self._code_changed)
 
-        execute_button = QtWidgets.QPushButton("Execute")
-        execute_button.clicked.connect(lambda: self._execute(debug=False))
-        debug_button = QtWidgets.QPushButton("Debug")
-        debug_button.clicked.connect(lambda: self._execute(debug=True))
-        self._style_buttons(execute_button, debug_button)
+        controls = QtWidgets.QWidget()
+        controls_layout = QtWidgets.QHBoxLayout(controls)
+        controls_layout.setContentsMargins(0, 0, 0, 0)
 
-        previous_button = QtWidgets.QPushButton("Previous step")
-        previous_button.clicked.connect(lambda: self._select_debug_step(-1))
-        next_button = QtWidgets.QPushButton("Next step")
-        next_button.clicked.connect(lambda: self._select_debug_step(1))
-        self.debug_controls = QtWidgets.QWidget()
-        debug_layout = QtWidgets.QHBoxLayout(self.debug_controls)
-        debug_layout.setContentsMargins(0, 0, 0, 0)
-        debug_layout.addWidget(previous_button)
-        debug_layout.addWidget(next_button)
-        self.debug_controls.setSizePolicy(
-            QtWidgets.QSizePolicy.Policy.Preferred,
-            QtWidgets.QSizePolicy.Policy.Fixed,
+        self.previous_button = IconButton(
+            resource_path("assets/icons/debug-step-back.svg"),
+            QtGui.QColor("#70b4f1"),
+            "Step back",
         )
-        self.debug_controls.setVisible(False)
-        self._style_buttons(
-            previous_button,
-            next_button,
-            palette_indexes=(2, 3),
+        self.previous_button.clicked.connect(lambda: self._select_debug_step(-1))
+        self.next_button = IconButton(
+            resource_path("assets/icons/debug-step-forward.svg"),
+            QtGui.QColor("#70b4f1"),
+            "Step forward",
         )
+        self.debug_button = IconButton(
+            resource_path("assets/icons/debug-start.svg"),
+            QtGui.QColor("#89d185"),
+            "Start debugging",
+        )
+        self.execute_button = IconButton(
+            resource_path("assets/icons/start.svg"),
+            QtGui.QColor("#89d185"),
+            "Run without debugging",
+        )
+        self.stop_button = IconButton(
+            resource_path("assets/icons/stop.svg"),
+            QtGui.QColor("#f6703d"),
+            "Stop",
+        )
+        self.stop_button.hide()
+
+        self.execute_button.clicked.connect(lambda: self._execute(debug=False))
+        self.debug_button.clicked.connect(lambda: self._execute(debug=True))
+        self.next_button.clicked.connect(lambda: self._select_debug_step(1))
+
+        self.debugger_buttons = QtWidgets.QWidget()
+        debugger_button_layout = QtWidgets.QHBoxLayout(self.debugger_buttons)
+        debugger_button_layout.setContentsMargins(0, 0, 0, 0)
+        debugger_button_layout.addWidget(self.previous_button)
+        debugger_button_layout.addWidget(self.next_button)
+        self.debugger_buttons.hide()
+
+        self.start_buttons = QtWidgets.QWidget()
+        start_buttons_layout = QtWidgets.QHBoxLayout(self.start_buttons)
+        start_buttons_layout.setContentsMargins(0, 0, 0, 0)
+        start_buttons_layout.addWidget(self.debug_button)
+        start_buttons_layout.addWidget(self.execute_button)
+
+        controls_layout.addStretch()
+        controls_layout.addWidget(self.debugger_buttons)
+        controls_layout.addWidget(self.start_buttons)
+        controls_layout.addWidget(self.stop_button)
 
         self.source_view = QtWidgets.QPlainTextEdit()
-        self.source_view.setFont(QtGui.QFont("Consolas", 12))
+        self.source_view.setFont(QtGui.QFont("Consolas", 10))
         self.source_view_highlighter = MineScriptHighlighter(
             self.source_view.document()
         )
@@ -84,10 +114,10 @@ class BlocklyPanel(QtWidgets.QWidget):
         self.variable_table = QtWidgets.QTableWidget()
         self.variable_table.setColumnCount(3)
         self.variable_table.setHorizontalHeaderLabels(("Name", "Value", "Type"))
-        self.variable_table.setCornerWidget(QtWidgets.QLabel("Hello!"))
 
         labeled_variable_table = QtWidgets.QWidget()
         labeled_variable_table_layout = QtWidgets.QVBoxLayout(labeled_variable_table)
+        labeled_variable_table_layout.setContentsMargins(0, 0, 0, 0)
         labeled_variable_table_layout.addWidget(QtWidgets.QLabel("Variables:"))
         labeled_variable_table_layout.addWidget(self.variable_table)
 
@@ -98,50 +128,25 @@ class BlocklyPanel(QtWidgets.QWidget):
         self.output_tabs.addTab(self.source_view, "Generated source")
         self.output_tabs.addTab(self.log_view, "Execution log")
 
-        action_buttons = QtWidgets.QHBoxLayout()
-        action_buttons.addWidget(execute_button)
-        action_buttons.addWidget(debug_button)
-
         editor_output_group = QtWidgets.QSplitter(QtCore.Qt.Orientation.Vertical)
         editor_output_group.addWidget(self.blockly_editor)
         editor_output_group.addWidget(self.output_tabs)
 
         layout = QtWidgets.QVBoxLayout(self)
-        layout.addLayout(action_buttons)
-        layout.addWidget(self.debug_controls)
+        layout.addWidget(controls)
         layout.addWidget(editor_output_group)
-        layout.setStretch(2, 3)
-        layout.setStretch(3, 2)
-
-    @staticmethod
-    def _style_buttons(
-        *buttons: QtWidgets.QPushButton,
-        palette_indexes: tuple[int, ...] | None = None,
-    ) -> None:
-        styles = (
-            ("#4C97FF", "#3378D0", "#285EA8"),
-            ("#FFAB19", "#D98B00", "#B87300"),
-            ("#9966FF", "#7547D6", "#5935A8"),
-            ("#59C059", "#419A41", "#307530"),
-        )
-        selected_styles = (
-            tuple(styles[index] for index in palette_indexes)
-            if palette_indexes is not None
-            else styles[: len(buttons)]
-        )
-        for button, (background, hover, pressed) in zip(buttons, selected_styles):
-            button.setStyleSheet(
-                f"""QPushButton {{ background: {background}; color: white;
-                    font-weight: bold; border: none; border-radius: 6px;
-                    padding: 8px 16px; }}
-                    QPushButton:hover {{ background: {hover}; }}
-                    QPushButton:pressed {{ background: {pressed}; }}"""
-            )
 
     def _code_changed(self, code: str) -> None:
         self.code = code
         self.source_view.setPlainText(code)
         self.codeChanged.emit(code)
+
+    def _reset(self):
+        self.debugger_buttons.hide()
+        self._hide_debug_panel()
+        self._clear_highlight()
+        self.start_buttons.show()
+        self.stop_button.hide()
 
     def _execute(self, debug: bool) -> None:
         self._execution_timer.stop()
@@ -160,9 +165,7 @@ class BlocklyPanel(QtWidgets.QWidget):
             self.debug_snapshots = []
             self.debug_index = -1
             self.debugging = False
-            self.debug_controls.setVisible(False)
-            self._hide_debug_panel()
-            self._clear_highlight()
+            self._reset()
             return
 
         self.debug_snapshots = interpreter.entry_snapshots
@@ -175,19 +178,20 @@ class BlocklyPanel(QtWidgets.QWidget):
             for snapshot in interpreter.state_snapshots
         ]
         self._execution_state_index = 0
-        self.debug_controls.setVisible(debug and bool(self.debug_snapshots))
+        self.debugger_buttons.setVisible(debug and bool(self.debug_snapshots))
+        self.start_buttons.hide()
+        self.stop_button.show()
+        self._clear_highlight()
         if debug:
             self._show_debug_panel()
             self.current_line_text.clear()
             self.variable_table.setRowCount(0)
             self.log_view.clear()
-            self._clear_highlight()
         else:
             self.log_view.setPlainText("\n".join(log.lines))
             if self._execution_states:
                 self._execution_timer.start()
             self._hide_debug_panel()
-            self._clear_highlight()
             self.output_tabs.setCurrentWidget(self.log_view)
 
     def _select_debug_step(self, delta: int) -> None:
@@ -214,15 +218,10 @@ class BlocklyPanel(QtWidgets.QWidget):
         snapshot = self.debug_snapshots[self.debug_index]
         self.variable_table.setRowCount(len(snapshot.variables.items()))
         for i, (name, value) in enumerate(sorted(snapshot.variables.items())):
+            type = "Bool" if isinstance(value, bool) else "Number"
             self.variable_table.setItem(i, 0, QtWidgets.QTableWidgetItem(name))
             self.variable_table.setItem(i, 1, QtWidgets.QTableWidgetItem(str(value)))
-            self.variable_table.setItem(
-                i,
-                2,
-                QtWidgets.QTableWidgetItem(
-                    "Bool" if isinstance(value, bool) else "Number"
-                ),
-            )
+            self.variable_table.setItem(i, 2, QtWidgets.QTableWidgetItem(type))
 
         self.current_line_text.setPlainText(
             f"Step {self.debug_index + 1} of {len(self.debug_snapshots)}\n"
@@ -256,16 +255,15 @@ class BlocklyPanel(QtWidgets.QWidget):
 
     def _finish_debugging(self) -> None:
         self.debugging = False
-        self.debug_controls.setVisible(False)
         if self._execution_states:
             self.robotStateChanged.emit(self._execution_states[-1])
         self.log_view.setPlainText("\n".join(self.debug_log_lines))
-        self._hide_debug_panel()
-        self._clear_highlight()
+        self._reset()
 
     def _emit_next_execution_state(self) -> None:
         if self._execution_state_index >= len(self._execution_states):
             self._execution_timer.stop()
+            self._reset()
             return
         self.robotStateChanged.emit(self._execution_states[self._execution_state_index])
         self._execution_state_index += 1
@@ -300,7 +298,11 @@ class BlocklyPanel(QtWidgets.QWidget):
 
     def _select_source_line(self, line_number: int) -> None:
         self.blockly_editor.highlight_line(line_number)
-        block = self.source_view.document().findBlockByLineNumber(line_number - 1)
+        document = self.source_view.document()
+        if not document:
+            return
+
+        block = document.findBlockByLineNumber(line_number - 1)
         if not block.isValid():
             return
         cursor = self.source_view.textCursor()

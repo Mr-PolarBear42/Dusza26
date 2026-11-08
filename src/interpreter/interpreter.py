@@ -125,7 +125,9 @@ class Interpreter:
             if self._api_error is None:
                 self.log.record(command.line, error=error.code)
             else:
-                api, value = self._api_error  # type: ignore #??? Nem tudom miért, de a type checker szerint ez így nem ok, de hibát nem ad
+                api, value = (
+                    self._api_error
+                )  # ??? Nem tudom miért, de a type checker szerint ez így nem ok, de hibát nem ad
                 details = () if value is None else (value,)
                 self.log.record(command.line, api, *details, error=error.code)
             raise ProgramTerminated from error
