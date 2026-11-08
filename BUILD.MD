@@ -8,7 +8,7 @@ Kövesd az utasításokat [innen](https://docs.astral.sh/uv/getting-started/inst
 
 A forráskódot közvetlenül is lehet futtatni, ehhez a következő parancsot kell beírni:
 ```
-uv run py src/main.py <input> <output>
+uv run python src/main.py <input> <output>
 ```
 
 ## A futtatható fájl buildelése
