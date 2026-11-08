@@ -62,8 +62,12 @@ class MapViewer(QtWidgets.QGraphicsView):
 
         self.clicked = False
 
-        self._scene_item_matrix: list[list[QtWidgets.QGraphicsPixmapItem | None]] | None = None  # ty: ignore[invalid-assignment]
-        self._undiscovered_blockers: list[list[QtWidgets.QGraphicsPixmapItem | None]] | None = None  # ty: ignore[invalid-assignment]
+        self._scene_item_matrix: (
+            list[list[QtWidgets.QGraphicsPixmapItem | None]] | None
+        ) = None
+        self._undiscovered_blockers: (
+            list[list[QtWidgets.QGraphicsPixmapItem | None]] | None
+        ) = None
 
         self._scene: QtWidgets.QGraphicsScene = QtWidgets.QGraphicsScene(self)
         self.setScene(self._scene)
@@ -73,10 +77,18 @@ class MapViewer(QtWidgets.QGraphicsView):
         command_layout.setContentsMargins(0, 0, 0, 0)
         command_layout.setSpacing(4)
         for command, icon_path, tooltip in (
-            ("step forward 1", resource_path("assets/icons/forward.svg"), "Step forward by 1"),
+            (
+                "step forward 1",
+                resource_path("assets/icons/forward.svg"),
+                "Step forward by 1",
+            ),
             ("turn by 1", resource_path("assets/icons/rotate-left.svg"), "Turn by 1"),
             ("mine here", resource_path("assets/icons/pickaxe.svg"), "Mine here"),
-            ("isThere", resource_path("assets/icons/eye.svg"), "Check what is in front"),
+            (
+                "isThere",
+                resource_path("assets/icons/eye.svg"),
+                "Check what is in front",
+            ),
         ):
             button = IconButton(icon_path, QtGui.QColor("#70b4f1"), tooltip)
             button.clicked.connect(
@@ -111,10 +123,10 @@ class MapViewer(QtWidgets.QGraphicsView):
         self._map_width = w
         self._map_height = h
 
-        self._scene_item_matrix = [  # ty: ignore[invalid-assignment]
+        self._scene_item_matrix = [
             [None for _ in range(self._map_width)] for _ in range(self._map_height)
         ]
-        self._undiscovered_blockers = [  # ty: ignore[invalid-assignment]
+        self._undiscovered_blockers = [
             [None for _ in range(self._map_width)] for _ in range(self._map_height)
         ]
 
@@ -123,9 +135,7 @@ class MapViewer(QtWidgets.QGraphicsView):
 
         ##render robot
 
-        robot_sprite = self.sprite_manager.get_sprite(
-            dir_to_arrow[self._robot_face]
-        )
+        robot_sprite = self.sprite_manager.get_sprite(dir_to_arrow[self._robot_face])
         self._robot_item = QtWidgets.QGraphicsPixmapItem(robot_sprite)
         self._robot_item.setScale(self.tile_size / robot_sprite.width())
         self._scene.addItem(self._robot_item)
@@ -147,9 +157,11 @@ class MapViewer(QtWidgets.QGraphicsView):
         self._add_blockers()
 
     def _undiscover_cell(self, x: int, y: int):
+        assert self._scene_item_matrix and self._undiscovered_blockers
+
         if self._scene_item_matrix[y][x] != None:
             self._scene.removeItem(self._scene_item_matrix[y][x])
-            self._scene_item_matrix[y][x] = None  # ty: ignore[invalid-assignment]
+            self._scene_item_matrix[y][x] = None
 
         if self._undiscovered_blockers[y][x] != None:
             return
@@ -166,11 +178,12 @@ class MapViewer(QtWidgets.QGraphicsView):
         self._undiscovered_blockers[y][x] = blocker
         self._scene.addItem(blocker)
 
-
     def _discover_cell(self, x: int, y: int):
+        assert self._undiscovered_blockers and self._scene_item_matrix
+
         if self._undiscovered_blockers[y][x] != None:
             self._scene.removeItem(self._undiscovered_blockers[y][x])
-            self._undiscovered_blockers[y][x] = None  # ty: ignore[invalid-assignment]
+            self._undiscovered_blockers[y][x] = None
 
         if self._map_data[y][x] != None:
             if self._scene_item_matrix[y][x] or self._map_data[y][x] == ".":
@@ -189,6 +202,7 @@ class MapViewer(QtWidgets.QGraphicsView):
                 self._scene.addItem(item)
 
     def _add_blockers(self):
+        assert self._undiscovered_blockers
 
         blocker_sprite = self.sprite_manager.get_sprite("_")
         for y in range(self._map_height):
@@ -227,17 +241,21 @@ class MapViewer(QtWidgets.QGraphicsView):
         self._add_blockers()
 
     def remove_item(self, x: int, y: int):
+        assert self._scene_item_matrix
+
         self._scene.removeItem(self._scene_item_matrix[y][x])
         self._scene_item_matrix[y][x] = None
 
     def _reload_cell(self, x: int, y: int):
+        assert self._scene_item_matrix
+
         if self._scene_item_matrix[y][x] != None:
-            self.remove_item(x,y)
+            self.remove_item(x, y)
 
         if self._map_data[y][x] == ".":
             return
         sprite = self.sprite_manager.get_sprite(self._map_data[y][x])
-        
+
         if sprite:
             item = QtWidgets.QGraphicsPixmapItem(sprite)
             item.setScale(self.tile_size / sprite.width())
@@ -245,7 +263,7 @@ class MapViewer(QtWidgets.QGraphicsView):
                 (x - y) * self.tile_size / 2,
                 (x + y) * self.tile_size / 4 - self.tile_size / 2,
             )
-            item.setZValue(y + 1/4)
+            item.setZValue(y + 1 / 4)
 
             self._scene_item_matrix[y][x] = item
             self._scene.addItem(item)
@@ -289,10 +307,14 @@ class MapViewer(QtWidgets.QGraphicsView):
         self.move_robot(column, row)
         self.change_robot_direction(direction)
 
-        is_discovered = [[False for _ in range(self._map_width)] for _ in range(self._map_height)]
+        is_discovered = [
+            [False for _ in range(self._map_width)] for _ in range(self._map_height)
+        ]
 
         for discovered_row, discovered_column in discovered:
             is_discovered[discovered_row][discovered_column] = True
+
+        assert self._undiscovered_blockers
 
         for discovered_row, values in enumerate(self._undiscovered_blockers):
             for discovered_column, value in enumerate(values):
@@ -307,6 +329,9 @@ class MapViewer(QtWidgets.QGraphicsView):
             for x in range(self._map_width):
                 if is_discovered[y][x]:
                     self._reload_cell(x, y)
+
+        assert self._scene_item_matrix
+
         for mined_row, mined_column in mined_at:
             if self._scene_item_matrix[mined_row][mined_column] is not None:
                 self.remove_item(mined_column, mined_row)
@@ -324,12 +349,13 @@ class MapViewer(QtWidgets.QGraphicsView):
             sensor_row = self._robot_y + delta[0]
             sensor_column = self._robot_x + delta[1]
             mined_positions = set(mined_at)
-            if not (
-                0 <= sensor_row < self._map_height
-                and 0 <= sensor_column < self._map_width
+            if (
+                not (
+                    0 <= sensor_row < self._map_height
+                    and 0 <= sensor_column < self._map_width
+                )
+                or self._map_data[sensor_row][sensor_column] == "#"
             ):
-                sensor = "wall"
-            elif self._map_data[sensor_row][sensor_column] == "#":
                 sensor = "wall"
             elif (
                 self._map_data[sensor_row][sensor_column] == "@"
@@ -338,11 +364,9 @@ class MapViewer(QtWidgets.QGraphicsView):
                 sensor = "gold"
             else:
                 sensor = "empty"
-        self._status_label.setText(
-            f"Sensor: {sensor}\nGold mined: {len(mined_at)}"
-        )
+        self._status_label.setText(f"Sensor: {sensor}\nGold mined: {len(mined_at)}")
         self._status_label.adjustSize()
-        
+
     # override cursor changes while dragging
     def mousePressEvent(self, event):
         if not self.clicked:
@@ -389,13 +413,16 @@ class MapViewer(QtWidgets.QGraphicsView):
 
             painter.drawPixmap(target_rect, self.windrose_sprite)
 
-    def resizeEvent(self, event: QtGui.QResizeEvent):
+    def resizeEvent(self, event: QtGui.QResizeEvent | None):
         super().resizeEvent(event)
         margin = 10
         self._command_buttons.adjustSize()
-        self._command_buttons.move(
-            margin,
-            self.viewport().height() - self._command_buttons.height() - margin,
-        )
-        self._status_label.adjustSize()
-        self._status_label.move(margin, margin)
+        viewport = self.viewport()
+
+        if viewport:
+            self._command_buttons.move(
+                margin,
+                viewport.height() - self._command_buttons.height() - margin,
+            )
+            self._status_label.adjustSize()
+            self._status_label.move(margin, margin)

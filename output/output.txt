@@ -1,0 +1,73 @@
+2 isThere 1 false
+4
+5 isThere 2 false
+6
+10
+11 step forward 1
+12 isThere 1 false
+14
+16
+17 turn by 0
+18 print 0
+4
+5 isThere 2 false
+6
+10
+11 step forward 1
+12 isThere 1 false
+14
+16
+17 turn by 0
+18 print 0
+4
+5 isThere 2 false
+6
+10
+11 step forward 1
+12 isThere 1 true
+14
+15 turn by 1
+18 print 0
+4
+5 isThere 2 false
+6
+10
+11 step forward 1
+12 isThere 1 false
+14
+16
+17 turn by 0
+18 print 0
+4
+5 isThere 2 false
+6
+10
+11 step forward 1
+12 isThere 1 true
+14
+15 turn by 1
+18 print 0
+4
+5 isThere 2 false
+6
+10
+11 step forward 1
+12 isThere 1 false
+14
+16
+17 turn by 0
+18 print 0
+4
+5 isThere 2 false
+6
+10
+11 step forward 1
+12 isThere 1 false
+14
+16
+17 turn by 0
+18 print 0
+4
+5 isThere 2 false
+6
+10

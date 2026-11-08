@@ -60,9 +60,7 @@ class Ide:
         blockly_panel.robotStateChanged.connect(mapWidget.update_robot_state)
         blockly_panel.mapResetEvent.connect(mapWidget.reset_map)
         mapWidget.commandRequested.connect(blockly_panel.execute_manual_command)
-        open_action.triggered.connect(
-            lambda: self._open_task(blockly_panel, mapWidget)
-        )
+        open_action.triggered.connect(lambda: self._open_task(blockly_panel, mapWidget))
 
         central_widget = QtWidgets.QWidget()
         main_layout = QtWidgets.QHBoxLayout(central_widget)
@@ -74,20 +72,18 @@ class Ide:
         self.win.setCentralWidget(central_widget)
 
         map_no_robot = deepcopy(map)
-        robot_position = [0, 0, Direction.NORTH]
+        robot_position: tuple[int, int, Direction] = (0, 0, Direction.NORTH)
         for row, values in enumerate(map_no_robot):
             for column, value in enumerate(values):
                 if value in "^>v<":
                     map_no_robot[row][column] = "."
-                    robot_position = [column, row, Direction("^>v<".index(value))]
+                    robot_position = (column, row, Direction("^>v<".index(value)))
         mapWidget.load_map(map_no_robot, w, h, *robot_position)
 
         self.win.showMaximized()
         sys.exit(app.exec())
 
-    def _open_task(
-        self, blockly_panel: BlocklyPanel, map_widget: MapViewer
-    ) -> None:
+    def _open_task(self, blockly_panel: BlocklyPanel, map_widget: MapViewer) -> None:
         file_path, _ = QtWidgets.QFileDialog.getOpenFileName(
             self.win,
             "Open task",
@@ -128,4 +124,5 @@ class Ide:
         content = "\n".join(lines)
         if lines:
             content += "\n"
+        Path(output_path).parent.mkdir(parents=True, exist_ok=True)
         Path(output_path).write_text(content, encoding="utf-8")
