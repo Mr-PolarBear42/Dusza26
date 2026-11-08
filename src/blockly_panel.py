@@ -76,6 +76,7 @@ class BlocklyPanel(QtWidgets.QWidget):
 
         self.speed_slider_value_label = QtWidgets.QLabel()
         self.execution_speed_slider.setRange(5, 100)
+        self.execution_speed_slider.setInvertedAppearance(True)
         self.execution_speed_slider.sliderMoved.connect(self._speed_slider_moved)
         self.execution_speed_slider.setValue(self.execution_speed_slider.maximum())
         self._speed_slider_moved(self.execution_speed_slider.value())
