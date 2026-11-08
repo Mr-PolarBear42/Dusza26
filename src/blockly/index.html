@@ -346,6 +346,9 @@
     new QWebChannel(qt.webChannelTransport, channel => {
       bridge = channel.objects.bridge;
       bridge.ready.connect(source => { pendingSource = source; importSource(source); });
+      workspace.addChangeListener(event => {
+        bridge.update_code(generatedCode());
+      });
     });
   </script>
 </body>
