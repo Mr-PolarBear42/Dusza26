@@ -3,6 +3,7 @@ from PyQt6 import QtCore, QtGui, QtWidgets
 from blockly_editor import BlocklyEditor
 from icon_button import IconButton
 from interpreter import Interpreter, Robot
+from interpreter.errors import RuntimeErrorCode
 from interpreter.state_snapshot import StateSnapshot
 from minescript_highlighter import MineScriptHighlighter
 from utils.arrow_to_direction import arrow_to_direction
@@ -33,6 +34,7 @@ class BlocklyPanel(QtWidgets.QWidget):
         self._execution_timer.timeout.connect(self._emit_next_execution_state)
         self._execution_states = []
         self._execution_state_index = 0
+        self._current_state: dict[str, object] | None = None
 
         palette = QtWidgets.QApplication.palette()
         dark_mode = palette.window().color().lightness() < 128
@@ -176,6 +178,61 @@ class BlocklyPanel(QtWidgets.QWidget):
         self.stop_button.hide()
         self.labelled_speed_slider.hide()
         robot = Robot.from_map(["".join(row) for row in self.map_data])
+        self._emit_robot_state(
+            robot.row,
+            robot.column,
+            robot.direction,
+            robot.mined_positions,
+            robot.discovered,
+        )
+
+    @QtCore.pyqtSlot(str)
+    def execute_manual_command(self, command: str) -> None:
+        if self._execution_timer.isActive():
+            self._execution_timer.stop()
+
+        try:
+            robot = Robot.from_map(["".join(row) for row in self.map_data])
+            if self._current_state is not None:
+                row = self._current_state["row"]
+                column = self._current_state["column"]
+                facing = self._current_state["facing"]
+                mined_at = self._current_state["mined_at"]
+                discovered = self._current_state["discovered"]
+                if (
+                    not isinstance(row, int)
+                    or not isinstance(column, int)
+                    or not isinstance(facing, str)
+                    or not isinstance(mined_at, (list, tuple))
+                    or not isinstance(discovered, (list, tuple))
+                ):
+                    raise ValueError("Invalid current robot state")
+                robot.row = row
+                robot.column = column
+                robot.direction = facing
+                robot.mined_positions = set(mined_at)
+                robot.discovered = set(discovered)
+                for mined_row, mined_column in robot.mined_positions:
+                    robot.grid[mined_row][mined_column] = "."
+
+            if command == "step forward 1":
+                robot.step_forward(1)
+            elif command == "turn by 1":
+                robot.turn_by(1)
+            elif command == "mine here":
+                robot.mine_here()
+            elif command == "isThere":
+                for kind in (0, 1, 2):
+                    robot.is_there(kind)
+            else:
+                raise ValueError(f"Unknown manual command: {command}")
+        except RuntimeErrorCode as error:
+            self.log_view.setPlainText(f"{command}: {error.code}")
+            return
+        except (ValueError, TypeError) as error:
+            self.log_view.setPlainText(f"Could not execute command: {error}")
+            return
+
         self._emit_robot_state(
             robot.row,
             robot.column,
@@ -340,15 +397,15 @@ class BlocklyPanel(QtWidgets.QWidget):
         mined_positions: set[tuple[int, int]] | frozenset[tuple[int, int]],
         discovered_positions: set[tuple[int, int]] | frozenset[tuple[int, int]],
     ) -> None:
-        self.robotStateChanged.emit(
-            {
-                "row": row,
-                "column": column,
-                "facing": direction,
-                "mined_at": sorted(mined_positions),
-                "discovered": sorted(discovered_positions),
-            }
-        )
+        state = {
+            "row": row,
+            "column": column,
+            "facing": direction,
+            "mined_at": sorted(mined_positions),
+            "discovered": sorted(discovered_positions),
+        }
+        self._current_state = state
+        self.robotStateChanged.emit(state)
 
     def _select_source_line(self, line_number: int) -> None:
         self.blockly_editor.highlight_line(line_number)
